@@ -2,155 +2,73 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
 import { AddHabitModal } from './AddHabitModal';
-import { formatDate } from '../utils/dateUtils';
-
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+import { WeekView } from './WeekView';
+import { HabitCard } from './HabitCard';
 
 export const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { habits, userName, isCompleted, toggleCompletion, completedDays } = useHabits();
-  const today = new Date();
-
-  const getStreak = (habitId: string): number => {
-    const habitCompletions = completedDays
-      .filter(c => c.habitId === habitId)
-      .map(c => c.date)
-      .sort()
-      .reverse();
-
-    if (habitCompletions.length === 0) return 0;
-
-    let streak = 0;
-    const checkDate = new Date();
-    const todayStr = formatDate(checkDate);
-
-    if (!habitCompletions.includes(todayStr)) {
-      checkDate.setDate(checkDate.getDate() - 1);
-    }
-
-    while (true) {
-      const dateStr = formatDate(checkDate);
-      if (habitCompletions.includes(dateStr)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    return streak;
-  };
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { habits, userName } = useHabits();
 
   return (
     <div className="main-content">
       {/* Header */}
-      <header className="mb-16">
-        <motion.p
-          className="text-label mb-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          {DAYS[today.getDay()].toUpperCase()}, {MONTHS[today.getMonth()].toUpperCase()} {today.getDate()}
-        </motion.p>
+      <header className="flex items-center justify-between mb-8">
         <motion.h1
           className="text-display"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
         >
-          Good {today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}, {userName}
+          Hey <span className="font-bold">{userName}!</span>
         </motion.h1>
+        <motion.button
+          onClick={() => setIsModalOpen(true)}
+          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M12 5V19M5 12H19" />
+          </svg>
+        </motion.button>
       </header>
 
-      {/* Today's habits section */}
-      <section>
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-title">Today's habits</h2>
-          <motion.button
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary"
-            whileTap={{ scale: 0.98 }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 5V19M5 12H19" />
-            </svg>
-            New habit
-          </motion.button>
-        </div>
+      {/* Date Strip */}
+      <WeekView selectedDate={selectedDate} onSelectDate={setSelectedDate} />
 
+      {/* Habits section */}
+      <section className="mt-8">
         {habits.length === 0 ? (
           <motion.div
-            className="py-16"
+            className="flex flex-col items-center justify-center py-20 text-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
           >
-            <div className="mb-6">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-title mb-2">Build your first habit</h3>
+            <p className="text-body mb-10 max-w-[260px]">Build a custom routine tailored to your goals.</p>
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="btn-primary"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="mr-1">
                 <path d="M12 5V19M5 12H19" />
               </svg>
-            </div>
-            <h3 className="text-title mb-2">Build your first habit</h3>
-            <p className="text-body mb-8">Create a custom routine tailored to your goals</p>
-            <button onClick={() => setIsModalOpen(true)} className="btn-ghost">
-              Create habit
+              New habit
             </button>
           </motion.div>
         ) : (
-          <div>
-            {habits.map((habit, index) => {
-              const completed = isCompleted(habit.id, today);
-              const streak = getStreak(habit.id);
-
-              return (
-                <motion.div
-                  key={habit.id}
-                  className="habit-row"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <button
-                    onClick={() => toggleCompletion(habit.id, today)}
-                    className={`checkbox ${completed ? 'checked' : ''}`}
-                    style={{
-                      borderColor: completed ? habit.color : undefined,
-                      backgroundColor: completed ? habit.color : undefined,
-                    }}
-                  >
-                    {completed && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ color: 'var(--bg)' }}>
-                        <path d="M5 12L10 17L19 7" />
-                      </svg>
-                    )}
-                  </button>
-
-                  <div className="flex-1">
-                    <span
-                      className="text-[15px]"
-                      style={{
-                        color: 'var(--text-primary)',
-                        opacity: completed ? 0.4 : 1,
-                        textDecoration: completed ? 'line-through' : 'none',
-                      }}
-                    >
-                      {habit.name}
-                    </span>
-                    {streak > 0 && (
-                      <span className="text-[12px] ml-3" style={{ color: 'var(--text-muted)' }}>
-                        {streak}d streak
-                      </span>
-                    )}
-                  </div>
-
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: habit.color }}
-                  />
-                </motion.div>
-              );
-            })}
+          <div className="flex flex-col items-center">
+            <div className="w-full relative py-12 px-2">
+              {habits.map((habit, index) => (
+                <HabitCard 
+                  key={habit.id} 
+                  habit={habit} 
+                  index={index} 
+                  selectedDate={selectedDate} 
+                />
+              ))}
+            </div>
           </div>
         )}
       </section>

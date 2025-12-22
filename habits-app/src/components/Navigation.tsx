@@ -7,40 +7,37 @@ interface NavigationProps {
 }
 
 const HomeIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V14H9V21H4C3.45 21 3 20.55 3 20V10.5Z" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
   </svg>
 );
 
 const StatsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 20V12" />
-    <path d="M10 20V6" />
-    <path d="M16 20V10" />
-    <path d="M22 20V4" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
   </svg>
 );
 
 const CalendarIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="17" rx="2" />
-    <path d="M3 9H21" />
-    <path d="M8 2V5" />
-    <path d="M16 2V5" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+    <circle cx="9" cy="14" r="1" />
+    <circle cx="15" cy="14" r="1" />
+    <circle cx="9" cy="18" r="1" />
+    <circle cx="15" cy="18" r="1" />
   </svg>
 );
 
 const SettingsIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
     <circle cx="12" cy="12" r="3" />
-    <path d="M12 2V5" />
-    <path d="M12 19V22" />
-    <path d="M4.93 4.93L7.05 7.05" />
-    <path d="M16.95 16.95L19.07 19.07" />
-    <path d="M2 12H5" />
-    <path d="M19 12H22" />
-    <path d="M4.93 19.07L7.05 16.95" />
-    <path d="M16.95 7.05L19.07 4.93" />
   </svg>
 );
 
@@ -53,22 +50,8 @@ const navItems: { view: ViewType; icon: React.FC }[] = [
 
 export const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50">
-      {/* Gradient fade effect */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(to top, var(--bg) 0%, var(--bg) 70%, transparent 100%)`,
-        }}
-      />
-
-      {/* Navigation content */}
-      <div
-        className="relative flex items-center justify-around px-8 pt-4 pb-8"
-        style={{
-          paddingBottom: 'max(2rem, env(safe-area-inset-bottom))',
-        }}
-      >
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/5">
+      <div className="max-w-[480px] mx-auto relative flex items-center justify-around px-6 pt-3 pb-8">
         {navItems.map(({ view, icon: Icon }) => {
           const isActive = currentView === view;
 
@@ -76,42 +59,39 @@ export const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
             <motion.button
               key={view}
               onClick={() => onNavigate(view)}
-              className="relative flex flex-col items-center gap-2 p-2"
+              className="relative flex flex-col items-center gap-1.5 p-2"
               whileTap={{ scale: 0.9 }}
               style={{
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
               }}
             >
-              <motion.div
-                animate={{
-                  scale: isActive ? 1 : 1,
-                  opacity: isActive ? 1 : 0.6,
-                }}
-                transition={{
-                  duration: 0.3,
-                  ease: [0.25, 0.1, 0.25, 1],
-                }}
-              >
-                <Icon />
-              </motion.div>
+              <Icon />
 
-              {/* Active indicator dot */}
+              {/* Active indicator */}
               <motion.div
-                className="h-1 w-1 rounded-full"
-                style={{ backgroundColor: 'var(--accent)' }}
+                className={`${view === 'stats' ? 'w-6 h-[3px]' : 'w-1 h-1'} rounded-full`}
+                style={{ backgroundColor: isActive ? 'var(--text-primary)' : 'transparent' }}
                 initial={false}
                 animate={{
                   scale: isActive ? 1 : 0,
                   opacity: isActive ? 1 : 0,
                 }}
-                transition={{
-                  duration: 0.25,
-                  ease: [0.25, 0.1, 0.25, 1],
-                }}
               />
             </motion.button>
           );
         })}
+
+        {/* Scanner button as seen in reference */}
+        <button className="absolute right-4 bottom-10 text-white/40">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+            <line x1="7" y1="12" x2="17" y2="12" />
+            <line x1="12" y1="7" x2="12" y2="17" />
+          </svg>
+        </button>
       </div>
     </nav>
   );

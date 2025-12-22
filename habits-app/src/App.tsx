@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
 import { useAuth } from './contexts/AuthContext';
-import { Sidebar } from './components/Sidebar';
+import { Navigation } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { Calendar } from './components/Calendar';
 import { Stats } from './components/Stats';
@@ -56,7 +56,6 @@ const AppLayout = () => {
 
   return (
     <div className="app-layout">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} />
       <main className="main-content">
         <AnimatePresence mode="wait">
           <motion.div
@@ -70,6 +69,7 @@ const AppLayout = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+      <Navigation currentView={currentView} onNavigate={setCurrentView} />
     </div>
   );
 };
