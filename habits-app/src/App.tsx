@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
@@ -7,6 +8,7 @@ import { Dashboard } from './components/Dashboard';
 import { Calendar } from './components/Calendar';
 import { Stats } from './components/Stats';
 import { Settings } from './components/Settings';
+import { LandingPage } from './components/LandingPage';
 import type { ViewType } from './types';
 
 const pageVariants = {
@@ -21,7 +23,7 @@ const pageVariants = {
   },
 };
 
-const AppContent = () => {
+const AppLayout = () => {
   const [currentView, setCurrentView] = useState<ViewType>('home');
 
   const renderView = () => {
@@ -63,7 +65,11 @@ function App() {
   return (
     <ThemeProvider>
       <HabitsProvider>
-        <AppContent />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/app" element={<AppLayout />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </HabitsProvider>
     </ThemeProvider>
   );
