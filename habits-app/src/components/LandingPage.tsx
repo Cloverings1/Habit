@@ -44,18 +44,19 @@ export const LandingPage = () => {
           HabitFlow
         </div>
         <div className="space-x-4">
-          <button 
-            onClick={() => navigate('/app')}
-            className="px-6 py-2 rounded-full border border-gray-700 hover:bg-gray-800 transition-all font-medium"
-          >
-            Login
-          </button>
-          <button 
-            onClick={() => navigate('/app')}
-            className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-700 transition-all font-medium"
-          >
-            Sign Up
-          </button>
+            <button 
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 rounded-full border border-gray-700 hover:bg-gray-800 transition-all font-medium"
+            >
+              Login
+            </button>
+            <button 
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-700 transition-all font-medium"
+            >
+              Sign Up
+            </button>
+
         </div>
       </nav>
 
@@ -83,12 +84,13 @@ export const LandingPage = () => {
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.2 }}
         >
-          <button 
-            onClick={() => navigate('/app')}
-            className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-lg font-bold transition-all transform hover:scale-105 shadow-lg shadow-indigo-500/25"
-          >
-            Get Started For Free
-          </button>
+            <button 
+              onClick={() => navigate('/login')}
+              className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-lg font-bold transition-all transform hover:scale-105 shadow-lg shadow-indigo-500/25"
+            >
+              Get Started For Free
+            </button>
+
         </motion.div>
       </section>
 
@@ -133,16 +135,17 @@ export const LandingPage = () => {
                 ))}
               </ul>
 
-              <button 
-                onClick={() => navigate('/app')}
-                className={`w-full py-4 rounded-xl font-bold transition-all ${
-                  plan.popular 
-                  ? 'bg-indigo-600 hover:bg-indigo-700' 
-                  : 'bg-gray-800 hover:bg-gray-700'
-                }`}
-              >
-                {plan.buttonText}
-              </button>
+                <button 
+                  onClick={() => navigate('/login')}
+                  className={`w-full py-4 rounded-xl font-bold transition-all ${
+                    plan.popular 
+                    ? 'bg-indigo-600 hover:bg-indigo-700' 
+                    : 'bg-gray-800 hover:bg-gray-700'
+                  }`}
+                >
+                  {plan.buttonText}
+                </button>
+
             </motion.div>
           ))}
         </div>

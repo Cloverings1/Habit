@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { storage } from '../utils/storage';
+import { useNavigate } from 'react-router-dom';
 
 export const Settings = () => {
   const { habits, userName, setUserName, removeHabit } = useHabits();
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName);
 
@@ -13,6 +17,11 @@ export const Settings = () => {
       setUserName(nameInput.trim());
     }
     setEditingName(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   const handleExport = () => {
@@ -109,6 +118,7 @@ export const Settings = () => {
 
       {/* Data */}
       <motion.section
+        className="mb-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -118,12 +128,38 @@ export const Settings = () => {
         </h2>
         <button
           onClick={handleExport}
-          className="text-[15px] hover:opacity-70 transition-opacity py-4"
+          className="text-[15px] hover:opacity-70 transition-opacity"
           style={{ color: 'var(--text-primary)' }}
         >
           Export all data
         </button>
       </motion.section>
+
+      {/* Account */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="mt-12 pt-8 border-t"
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+      >
+        <h2 className="text-[12px] uppercase tracking-wide mb-4" style={{ color: 'var(--text-muted)' }}>
+          Account
+        </h2>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>Logged in as</span>
+            <span className="text-[14px]" style={{ color: 'var(--text-primary)' }}>{user?.email}</span>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="text-[15px] hover:opacity-70 transition-opacity text-left text-red-500"
+          >
+            Sign Out
+          </button>
+        </div>
+      </motion.section>
     </div>
   );
 };
+

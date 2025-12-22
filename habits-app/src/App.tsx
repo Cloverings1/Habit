@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
+import { useAuth } from './contexts/AuthContext';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { Calendar } from './components/Calendar';
 import { Stats } from './components/Stats';
 import { Settings } from './components/Settings';
 import { LandingPage } from './components/LandingPage';
+import { AuthPage } from './components/AuthPage';
 import type { ViewType } from './types';
 
 const pageVariants = {
@@ -25,6 +27,17 @@ const pageVariants = {
 
 const AppLayout = () => {
   const [currentView, setCurrentView] = useState<ViewType>('home');
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) return null;
+  if (!user) return null;
 
   const renderView = () => {
     switch (currentView) {
@@ -62,12 +75,22 @@ const AppLayout = () => {
 };
 
 function App() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
   return (
     <ThemeProvider>
       <HabitsProvider>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/app" element={<AppLayout />} />
+          <Route 
+            path="/" 
+            element={user ? <Navigate to="/app" replace /> : <LandingPage />} 
+          />
+          <Route 
+            path="/login" 
+            element={user ? <Navigate to="/app" replace /> : <AuthPage />} 
+          />
+          <Route path="/app/*" element={<AppLayout />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HabitsProvider>
