@@ -51,7 +51,7 @@ const navItems: { view: ViewType; icon: React.FC }[] = [
 export const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/5">
-      <div className="max-w-[480px] mx-auto relative flex items-center justify-around px-6 pt-3 pb-8">
+      <div className="max-w-[480px] mx-auto relative flex items-center justify-around px-6 pt-3 pb-6">
         {navItems.map(({ view, icon: Icon }) => {
           const isActive = currentView === view;
 

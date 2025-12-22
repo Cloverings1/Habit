@@ -77,13 +77,13 @@ body {
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 24px 140px 24px;
+  padding: 24px 20px 100px 20px;
 }
 
 @media (min-width: 1024px) {
   .main-content {
-    padding-left: 60px;
-    padding-right: 60px;
+    padding-left: 40px;
+    padding-right: 40px;
   }
 }
 
@@ -91,8 +91,8 @@ body {
 .date-strip {
   display: flex;
   justify-content: space-between;
-  padding: 16px 0;
-  margin-bottom: 16px;
+  padding: 12px 0;
+  margin-bottom: 8px;
 }
 
 /* UI Components */
@@ -189,14 +189,6 @@ body {
 
 .habit-card.completed {
   background: rgba(255, 255, 255, 0.04);
-}
-
-/* Date Strip */
-.date-strip {
-  display: flex;
-  justify-content: space-between;
-  padding: 24px 0;
-  margin-bottom: 24px;
 }
 
 .date-item {

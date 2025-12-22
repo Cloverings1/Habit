@@ -13,7 +13,7 @@ export const Dashboard = () => {
   return (
     <div className="main-content">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-4">
         <motion.h1
           className="text-display"
           initial={{ opacity: 0, x: -10 }}
@@ -38,15 +38,15 @@ export const Dashboard = () => {
       <WeekView selectedDate={selectedDate} onSelectDate={setSelectedDate} />
 
       {/* Habits section */}
-      <section className="mt-8">
+      <section className="mt-4">
           {habits.length === 0 ? (
             <motion.div
-              className="flex flex-col items-center justify-center py-12 text-center"
+              className="flex flex-col items-center justify-center py-8 text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
             <h3 className="text-title mb-2">Build your first habit</h3>
-            <p className="text-body mb-10 max-w-[260px]">Build a custom routine tailored to your goals.</p>
+            <p className="text-body mb-6 max-w-[260px]">Build a custom routine tailored to your goals.</p>
             <button 
               onClick={() => setIsModalOpen(true)} 
               className="btn-primary"
@@ -59,7 +59,7 @@ export const Dashboard = () => {
           </motion.div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className="w-full relative py-12 px-2">
+            <div className="w-full relative py-6 px-2">
               {habits.map((habit, index) => (
                 <HabitCard 
                   key={habit.id} 
