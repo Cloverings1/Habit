@@ -39,12 +39,12 @@ export const Dashboard = () => {
 
       {/* Habits section */}
       <section className="mt-8">
-        {habits.length === 0 ? (
-          <motion.div
-            className="flex flex-col items-center justify-center py-20 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          {habits.length === 0 ? (
+            <motion.div
+              className="flex flex-col items-center justify-center py-12 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
             <h3 className="text-title mb-2">Build your first habit</h3>
             <p className="text-body mb-10 max-w-[260px]">Build a custom routine tailored to your goals.</p>
             <button 
