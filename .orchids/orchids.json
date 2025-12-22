@@ -1,0 +1,7 @@
+{
+  "projectId": "9939fc9d-2d5c-4568-aaa4-1c7435c543fe",
+  "createdAt": 1766443141922,
+  "startupCommands": [
+    "cd habits-app && npm run dev"
+  ]
+}
