@@ -39,69 +39,78 @@ export const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center p-6 selection:bg-[#E85D4F]/30">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-[var(--card-bg)] rounded-3xl p-8 border border-[var(--border)] shadow-xl"
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-[400px]"
       >
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+        <div className="text-center mb-12">
+          <h1 className="text-[24px] font-semibold text-[#F5F5F5] mb-3 tracking-tight">
+            {isLogin ? 'Sign In' : 'Create Account'}
           </h1>
-          <p className="text-[var(--text-muted)]">
-            {isLogin ? 'Sign in to track your habits' : 'Start your habit building journey today'}
+          <p className="text-[14px] text-[#A0A0A0]">
+            {isLogin ? 'Enter your details to continue.' : 'Start tracking your habits today.'}
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-              Email Address
+            <label className="text-metadata block mb-2 opacity-60">
+              Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full px-0 py-3 bg-transparent border-b border-[#181818] text-[#F5F5F5] text-[15px] focus:outline-none focus:border-[#E85D4F] transition-colors"
+              placeholder="name@example.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+            <label className="text-metadata block mb-2 opacity-60">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full px-0 py-3 bg-transparent border-b border-[#181818] text-[#F5F5F5] text-[15px] focus:outline-none focus:border-[#E85D4F] transition-colors"
+              placeholder="••••••••"
               required
             />
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[13px] text-[#E85D4F] font-medium"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 rounded-xl bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-          </button>
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-pill-primary w-full disabled:opacity-50"
+            >
+              {loading ? 'Processing' : (isLogin ? 'Continue' : 'Create Account')}
+            </button>
+          </div>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-10 text-center">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-[var(--accent)] text-sm font-medium hover:underline"
+            className="text-[13px] text-[#6F6F6F] hover:text-[#A0A0A0] transition-colors"
           >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            {isLogin ? "New here? Create an account" : "Already have an account? Sign in"}
           </button>
         </div>
       </motion.div>
