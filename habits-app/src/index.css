@@ -40,6 +40,13 @@ body {
   line-height: 1.2;
 }
 
+.text-display {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
 .text-section-header {
   font-size: 22px;
   font-weight: 500;
@@ -59,6 +66,25 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* App Layout & Containers */
+.app-layout {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.main-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 64px 32px 140px 32px;
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    padding-left: 64px;
+    padding-right: 64px;
+  }
 }
 
 /* UI Components */
