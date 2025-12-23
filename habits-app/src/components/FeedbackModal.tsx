@@ -284,7 +284,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown' }: Feed
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Brief summary of your request"
-                        className="w-full p-4 rounded-xl text-[15px] outline-none transition-all mb-3"
+                        className="w-full px-3 py-4 rounded-xl text-[15px] outline-none transition-all mb-3"
                         style={{
                           background: 'rgba(255, 255, 255, 0.04)',
                           border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -300,7 +300,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown' }: Feed
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Describe the issue or suggestion in detail. Include steps to reproduce if reporting a bug."
                         rows={4}
-                        className="w-full p-4 rounded-xl text-[15px] resize-none outline-none transition-all"
+                        className="w-full px-3 py-4 rounded-xl text-[15px] resize-none outline-none transition-all"
                         style={{
                           background: 'rgba(255, 255, 255, 0.04)',
                           border: '1px solid rgba(255, 255, 255, 0.08)',
