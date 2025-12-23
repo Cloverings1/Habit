@@ -22,6 +22,13 @@ interface FoundingSlotData {
   user_name?: string;
 }
 
+interface FoundingUserInfo {
+  user_id: string;
+  email: string;
+  display_name: string;
+  claimed_at: string;
+}
+
 const ADMIN_EMAIL = 'jonas@jonasinfocus.com';
 
 export const Settings = () => {
@@ -59,7 +66,10 @@ export const Settings = () => {
   const [signingOut, setSigningOut] = useState(false);
   const [showFoundingSlots, setShowFoundingSlots] = useState(false);
   const [foundingSlots, setFoundingSlots] = useState<FoundingSlotData[]>([]);
+  const [foundingUsers, setFoundingUsers] = useState<FoundingUserInfo[]>([]);
   const [foundingSlotsLoading, setFoundingSlotsLoading] = useState(false);
+  const [revokingUserId, setRevokingUserId] = useState<string | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -70,46 +80,28 @@ export const Settings = () => {
     const fetchFoundingSlots = async () => {
       setFoundingSlotsLoading(true);
       try {
-        // Fetch all founding slots with user profile data
-        const { data, error } = await supabase
+        // Fetch all founding slots
+        const { data: slotsData, error: slotsError } = await supabase
           .from('founding_slots')
-          .select(`
-            id,
-            claimed_by_user_id,
-            claimed_at
-          `)
+          .select('id, claimed_by_user_id, claimed_at')
           .order('claimed_at', { ascending: true, nullsFirst: false });
 
-        if (error) {
-          console.error('Error fetching founding slots:', error);
+        if (slotsError) {
+          console.error('Error fetching founding slots:', slotsError);
           return;
         }
 
-        // Fetch user profiles for claimed slots
-        const claimedUserIds = data
-          ?.filter(slot => slot.claimed_by_user_id)
-          .map(slot => slot.claimed_by_user_id) || [];
+        setFoundingSlots(slotsData || []);
 
-        let userProfiles: { id: string; display_name: string | null; email: string | null }[] = [];
-        if (claimedUserIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('user_profiles')
-            .select('id, display_name, email')
-            .in('id', claimedUserIds);
-          userProfiles = profiles || [];
+        // Fetch user info using admin RPC function
+        const { data: usersData, error: usersError } = await supabase
+          .rpc('get_founding_users_info');
+
+        if (usersError) {
+          console.error('Error fetching founding users:', usersError);
+        } else {
+          setFoundingUsers(usersData || []);
         }
-
-        // Merge slot data with user profiles
-        const slotsWithUsers = data?.map(slot => {
-          const userProfile = userProfiles.find(p => p.id === slot.claimed_by_user_id);
-          return {
-            ...slot,
-            user_email: userProfile?.email || undefined,
-            user_name: userProfile?.display_name || undefined,
-          };
-        }) || [];
-
-        setFoundingSlots(slotsWithUsers);
       } catch (error) {
         console.error('Error fetching founding slots:', error);
       } finally {
@@ -123,6 +115,43 @@ export const Settings = () => {
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMessage({ type, text });
     setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  const handleRevokeFoundingStatus = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to revoke founding status from ${userName}? This will:\n\n• Remove their Diamond membership\n• Free up a founding slot\n• Set them back to Free tier`)) {
+      return;
+    }
+
+    setRevokingUserId(userId);
+    try {
+      const { data, error } = await supabase.rpc('revoke_founding_status', {
+        target_user_id: userId
+      });
+
+      if (error) {
+        showStatus('error', `Failed to revoke: ${error.message}`);
+        return;
+      }
+
+      if (data?.success) {
+        showStatus('success', `Founding status revoked from ${userName}`);
+        // Refresh the data
+        setFoundingUsers(prev => prev.filter(u => u.user_id !== userId));
+        setFoundingSlots(prev => prev.map(s =>
+          s.claimed_by_user_id === userId
+            ? { ...s, claimed_by_user_id: null, claimed_at: null }
+            : s
+        ));
+        setExpandedUserId(null);
+      } else {
+        showStatus('error', data?.error || 'Failed to revoke founding status');
+      }
+    } catch (error) {
+      console.error('Error revoking founding status:', error);
+      showStatus('error', 'An error occurred');
+    } finally {
+      setRevokingUserId(null);
+    }
   };
 
   const handleSaveName = async () => {
@@ -702,18 +731,19 @@ export const Settings = () => {
                     </div>
 
                     {/* Claimed Slots List */}
-                    {foundingSlots.filter(s => s.claimed_by_user_id).length > 0 && (
+                    {foundingUsers.length > 0 && (
                       <div>
                         <p className="text-[12px] uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
-                          Claimed By
+                          Founding Members
                         </p>
                         <div className="space-y-2">
-                          {foundingSlots
-                            .filter(s => s.claimed_by_user_id)
-                            .map((slot, index) => (
-                              <div
-                                key={slot.id}
-                                className="flex items-center justify-between py-3 px-4 rounded-lg"
+                          {foundingUsers.map((foundingUser, index) => (
+                            <div key={foundingUser.user_id}>
+                              <button
+                                onClick={() => setExpandedUserId(
+                                  expandedUserId === foundingUser.user_id ? null : foundingUser.user_id
+                                )}
+                                className="w-full flex items-center justify-between py-3 px-4 rounded-lg transition-all hover:bg-white/[0.06]"
                                 style={{ background: 'rgba(255, 255, 255, 0.04)' }}
                               >
                                 <div className="flex items-center gap-3">
@@ -723,32 +753,87 @@ export const Settings = () => {
                                   >
                                     {index + 1}
                                   </span>
-                                  <div>
+                                  <div className="text-left">
                                     <p className="text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                                      {slot.user_name || 'Unknown'}
+                                      {foundingUser.display_name}
                                     </p>
                                     <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                      {slot.user_email || slot.claimed_by_user_id?.slice(0, 8) + '...'}
+                                      {foundingUser.email}
                                     </p>
                                   </div>
                                 </div>
-                                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                  {slot.claimed_at
-                                    ? new Date(slot.claimed_at).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                      })
-                                    : '—'}
-                                </p>
-                              </div>
-                            ))}
+                                <div className="flex items-center gap-3">
+                                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    {foundingUser.claimed_at
+                                      ? new Date(foundingUser.claimed_at).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                        })
+                                      : '—'}
+                                  </p>
+                                  <ChevronDown
+                                    size={14}
+                                    style={{
+                                      color: 'var(--text-muted)',
+                                      transform: expandedUserId === foundingUser.user_id ? 'rotate(180deg)' : 'rotate(0deg)',
+                                      transition: 'transform 0.2s ease',
+                                    }}
+                                  />
+                                </div>
+                              </button>
+
+                              {/* Expanded User Management */}
+                              <AnimatePresence>
+                                {expandedUserId === foundingUser.user_id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div
+                                      className="p-4 mt-1 rounded-lg space-y-3"
+                                      style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)' }}
+                                    >
+                                      <div className="grid grid-cols-2 gap-3 text-[13px]">
+                                        <div>
+                                          <p style={{ color: 'var(--text-muted)' }}>User ID</p>
+                                          <p className="font-mono text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                                            {foundingUser.user_id.slice(0, 8)}...
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p style={{ color: 'var(--text-muted)' }}>Status</p>
+                                          <p className="mt-1" style={{ color: '#22d3ee' }}>
+                                            Diamond Member
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      <div className="pt-2 border-t" style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}>
+                                        <button
+                                          onClick={() => handleRevokeFoundingStatus(foundingUser.user_id, foundingUser.display_name)}
+                                          disabled={revokingUserId === foundingUser.user_id}
+                                          className="text-[13px] px-3 py-1.5 rounded-lg transition-all hover:bg-red-500/20 disabled:opacity-50"
+                                          style={{ color: '#ef4444' }}
+                                        >
+                                          {revokingUserId === foundingUser.user_id ? 'Revoking...' : 'Revoke Founding Status'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
 
                     {/* Empty State */}
-                    {foundingSlots.filter(s => s.claimed_by_user_id).length === 0 && (
+                    {foundingUsers.length === 0 && !foundingSlotsLoading && (
                       <p className="text-[14px] py-4 text-center" style={{ color: 'var(--text-muted)' }}>
                         No founding slots claimed yet
                       </p>
