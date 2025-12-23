@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0B0B0B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0B0B0B;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 520px; background: linear-gradient(180deg, #141414 0%, #0F0F0F 100%); border-radius: 24px; border: 1px solid rgba(255,255,255,0.06);">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 48px 40px 24px 40px; text-align: center;">
+              <div style="font-size: 28px; font-weight: 600; color: #F5F5F5; letter-spacing: -0.02em;">
+                Habits
+              </div>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 16px 40px 40px 40px;">
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.7; color: #E0E0E0;">
+                Quick heads up! 📧
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.7; color: #A0A0A0;">
+                You requested to change your email address to <strong style="color: #E0E0E0;">{{ .NewEmail }}</strong>. Just confirm below and you're all set.
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display: inline-block; padding: 16px 48px; background-color: #F5F5F5; color: #0B0B0B; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 100px;">
+                      Confirm New Email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 32px 0 0 0; font-size: 16px; line-height: 1.7; color: #A0A0A0;">
+                If you didn't request this change, please reach out to me immediately and I'll help secure your account.
+              </p>
+
+              <p style="margin: 24px 0 0 0; font-size: 16px; color: #A0A0A0;">
+                — Jonas
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 40px;">
+              <div style="height: 1px; background: rgba(255,255,255,0.06);"></div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px 32px 40px; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #4F4F4F; line-height: 1.6;">
+                Button not working? Copy this link:<br>
+                <span style="color: #6F6F6F; word-break: break-all;">{{ .ConfirmationURL }}</span>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+        <p style="margin: 24px 0 0 0; font-size: 11px; color: #3F3F3F; text-align: center;">
+          Habits · Quietly building since 2025
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

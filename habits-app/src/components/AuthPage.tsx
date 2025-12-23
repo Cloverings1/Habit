@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { TermsModal } from './TermsModal';
+import { FoundingCelebration } from './FoundingCelebration';
+import { useDiamondSpots, claimFoundingSlot } from '../hooks/useDiamondSpots';
 import { HABIT_COLORS } from '../types';
 
 export const AuthPage = () => {
@@ -16,7 +18,12 @@ export const AuthPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showFoundingCelebration, setShowFoundingCelebration] = useState(false);
+  const [isFoundingMember, setIsFoundingMember] = useState(false);
   const navigate = useNavigate();
+
+  // Check if founding spots are available
+  const { spotsRemaining, loading: spotsLoading } = useDiamondSpots();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +82,7 @@ export const AuthPage = () => {
     requestAnimationFrame(animateProgress);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -88,9 +95,29 @@ export const AuthPage = () => {
       });
       if (error) throw error;
 
-      // Wait for the loading animation to complete
+      // Check if we can claim a founding spot
+      let claimedFoundingSpot = false;
+      if (spotsRemaining > 0 && signUpData.user?.id) {
+        try {
+          const claimResult = await claimFoundingSlot(signUpData.user.id);
+          if (claimResult.success) {
+            claimedFoundingSpot = true;
+            setIsFoundingMember(true);
+          }
+        } catch (claimErr) {
+          // Silently fail - user still gets regular account
+          console.log('Could not claim founding spot:', claimErr);
+        }
+      }
+
+      // Wait for the loading animation to complete, then show appropriate celebration
       setTimeout(() => {
-        setShowCelebration(true);
+        if (claimedFoundingSpot) {
+          setShowSuccess(false); // Hide the loading modal
+          setShowFoundingCelebration(true); // Show epic founding celebration
+        } else {
+          setShowCelebration(true); // Show regular celebration
+        }
       }, 1600);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An error occurred';
@@ -498,6 +525,19 @@ export const AuthPage = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Founding Member Epic Celebration */}
+      <FoundingCelebration
+        isOpen={showFoundingCelebration}
+        userName={name}
+        onContinue={() => {
+          setShowFoundingCelebration(false);
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setName('');
+        }}
+      />
     </div>
   );
 };

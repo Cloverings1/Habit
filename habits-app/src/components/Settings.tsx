@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,8 +10,17 @@ import { ConsistencyReport } from './ConsistencyReport';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { FeedbackModal } from './FeedbackModal';
 import { AdminFeedbackView } from './AdminFeedbackView';
-import { Lock, Camera, ChevronDown, Check, X, MessageCircle } from 'lucide-react';
+import { Lock, Camera, ChevronDown, Check, X, MessageCircle, Users } from 'lucide-react';
 import { validateAvatarFile } from '../utils/avatarUtils';
+import { supabase } from '../utils/supabase';
+
+interface FoundingSlotData {
+  id: string;
+  claimed_by_user_id: string | null;
+  claimed_at: string | null;
+  user_email?: string;
+  user_name?: string;
+}
 
 const ADMIN_EMAIL = 'jonas@jonasinfocus.com';
 
@@ -47,8 +56,69 @@ export const Settings = () => {
   const [showResetModal, setShowResetModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showAdminFeedback, setShowAdminFeedback] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [showFoundingSlots, setShowFoundingSlots] = useState(false);
+  const [foundingSlots, setFoundingSlots] = useState<FoundingSlotData[]>([]);
+  const [foundingSlotsLoading, setFoundingSlotsLoading] = useState(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // Fetch founding slots data for admin
+  useEffect(() => {
+    if (!isAdmin || !showFoundingSlots) return;
+
+    const fetchFoundingSlots = async () => {
+      setFoundingSlotsLoading(true);
+      try {
+        // Fetch all founding slots with user profile data
+        const { data, error } = await supabase
+          .from('founding_slots')
+          .select(`
+            id,
+            claimed_by_user_id,
+            claimed_at
+          `)
+          .order('claimed_at', { ascending: true, nullsFirst: false });
+
+        if (error) {
+          console.error('Error fetching founding slots:', error);
+          return;
+        }
+
+        // Fetch user profiles for claimed slots
+        const claimedUserIds = data
+          ?.filter(slot => slot.claimed_by_user_id)
+          .map(slot => slot.claimed_by_user_id) || [];
+
+        let userProfiles: { id: string; display_name: string | null; email: string | null }[] = [];
+        if (claimedUserIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('user_profiles')
+            .select('id, display_name, email')
+            .in('id', claimedUserIds);
+          userProfiles = profiles || [];
+        }
+
+        // Merge slot data with user profiles
+        const slotsWithUsers = data?.map(slot => {
+          const userProfile = userProfiles.find(p => p.id === slot.claimed_by_user_id);
+          return {
+            ...slot,
+            user_email: userProfile?.email || undefined,
+            user_name: userProfile?.display_name || undefined,
+          };
+        }) || [];
+
+        setFoundingSlots(slotsWithUsers);
+      } catch (error) {
+        console.error('Error fetching founding slots:', error);
+      } finally {
+        setFoundingSlotsLoading(false);
+      }
+    };
+
+    fetchFoundingSlots();
+  }, [isAdmin, showFoundingSlots]);
 
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMessage({ type, text });
@@ -118,13 +188,16 @@ export const Settings = () => {
   };
 
   const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       await signOut();
-      // Small delay to ensure auth state clears before redirect
-      setTimeout(() => navigate('/login'), 100);
+      // Navigate immediately - auth state change will handle the rest
+      navigate('/login');
     } catch (error) {
       console.error('Sign out error:', error);
       showStatus('error', 'Failed to sign out');
+      setSigningOut(false);
     }
   };
 
@@ -560,6 +633,134 @@ export const Settings = () => {
         </div>
       </motion.section>
 
+      {/* Admin: Founding Slots */}
+      {isAdmin && (
+        <motion.section
+          className="mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.38 }}
+        >
+          <button
+            onClick={() => setShowFoundingSlots(!showFoundingSlots)}
+            className="flex items-center justify-between w-full mb-4 hover:opacity-70 transition-opacity"
+          >
+            <div className="flex items-center gap-2">
+              <Users size={14} style={{ color: 'rgba(6, 182, 212, 0.7)' }} />
+              <h2 className="text-[12px] uppercase tracking-wide" style={{ color: 'rgba(6, 182, 212, 0.7)' }}>
+                Founding Slots
+              </h2>
+            </div>
+            <ChevronDown
+              size={16}
+              style={{
+                color: 'var(--text-muted)',
+                transform: showFoundingSlots ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            />
+          </button>
+
+          <AnimatePresence>
+            {showFoundingSlots && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                {foundingSlotsLoading ? (
+                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Loading...</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div
+                      className="p-4 rounded-xl"
+                      style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.15)' }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Total Slots</p>
+                          <p className="text-[20px] font-semibold" style={{ color: 'rgba(6, 182, 212, 0.9)' }}>
+                            {foundingSlots.length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Claimed</p>
+                          <p className="text-[20px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {foundingSlots.filter(s => s.claimed_by_user_id).length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Available</p>
+                          <p className="text-[20px] font-semibold" style={{ color: '#22c55e' }}>
+                            {foundingSlots.filter(s => !s.claimed_by_user_id).length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Claimed Slots List */}
+                    {foundingSlots.filter(s => s.claimed_by_user_id).length > 0 && (
+                      <div>
+                        <p className="text-[12px] uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
+                          Claimed By
+                        </p>
+                        <div className="space-y-2">
+                          {foundingSlots
+                            .filter(s => s.claimed_by_user_id)
+                            .map((slot, index) => (
+                              <div
+                                key={slot.id}
+                                className="flex items-center justify-between py-3 px-4 rounded-lg"
+                                style={{ background: 'rgba(255, 255, 255, 0.04)' }}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium"
+                                    style={{ background: 'rgba(6, 182, 212, 0.2)', color: 'rgba(6, 182, 212, 0.9)' }}
+                                  >
+                                    {index + 1}
+                                  </span>
+                                  <div>
+                                    <p className="text-[14px]" style={{ color: 'var(--text-primary)' }}>
+                                      {slot.user_name || 'Unknown'}
+                                    </p>
+                                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                      {slot.user_email || slot.claimed_by_user_id?.slice(0, 8) + '...'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                  {slot.claimed_at
+                                    ? new Date(slot.claimed_at).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })
+                                    : '—'}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State */}
+                    {foundingSlots.filter(s => s.claimed_by_user_id).length === 0 && (
+                      <p className="text-[14px] py-4 text-center" style={{ color: 'var(--text-muted)' }}>
+                        No founding slots claimed yet
+                      </p>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      )}
+
       {/* Account */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -578,9 +779,11 @@ export const Settings = () => {
           </div>
           <button
             onClick={handleSignOut}
-            className="text-[15px] hover:opacity-70 transition-opacity text-left text-red-500"
+            disabled={signingOut}
+            className="text-[15px] hover:opacity-70 transition-opacity text-left text-red-500 py-3 -mx-2 px-2 rounded-lg active:bg-red-500/10 disabled:opacity-50"
+            type="button"
           >
-            Sign Out
+            {signingOut ? 'Signing out...' : 'Sign Out'}
           </button>
         </div>
       </motion.section>

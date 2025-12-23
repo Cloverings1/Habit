@@ -1,52 +1,50 @@
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useDiamondSpots } from '../hooks/useDiamondSpots';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
-  const { spotsRemaining, loading: spotsLoading } = useDiamondSpots();
+  const { spotsRemaining, loading: spotsLoading, error: spotsError } = useDiamondSpots();
 
   const pricingPlans = [
     {
-      name: 'Free',
+      name: 'Personal',
       price: '$0',
-      description: 'Start building the habit.',
+      description: 'Start where you are.',
       features: [
         'Up to 3 habits',
-        'Daily & Weekly views',
-        'Core tracking'
+        'Daily & weekly views',
+        'Private by default'
       ],
-      buttonText: 'Get Started',
+      buttonText: 'Get started',
       tier: 'free' as const
     },
     {
       name: 'Pro',
       price: '$9',
       period: '/month',
-      description: 'For serious habit builders.',
+      description: 'For ongoing practice.',
       features: [
         'Unlimited habits',
-        'Insights over time',
-        'Cloud sync across devices',
-        'Priority support'
+        'Progress over time',
+        'Sync across devices',
+        'Private and secure'
       ],
-      buttonText: 'Go Pro',
+      buttonText: 'Continue with Pro',
       tier: 'pro' as const
     },
     {
-      name: 'Diamond',
+      name: 'Founding',
       price: '$0',
-      period: '/forever',
-      badge: spotsRemaining > 0 ? `${spotsRemaining}/5 left` : 'Sold out',
-      description: 'Founding member. Lifetime access.',
+      period: '/lifetime',
+      description: 'Help shape what comes next.',
       features: [
         'Everything in Pro',
-        'Lifetime access - forever free',
-        'Founding member status',
+        'Lifetime access',
         'Early access to new features',
         'Direct line to the founder'
       ],
-      buttonText: spotsRemaining > 0 ? 'Claim Your Spot' : 'Join Waitlist',
+      buttonText: spotsRemaining > 0 ? 'Become a founding member' : 'Founding access closed',
       tier: 'diamond' as const
     }
   ];
@@ -69,49 +67,76 @@ export const LandingPage = () => {
             onClick={() => navigate('/login')}
             className="btn-pill-primary !py-2 !px-6 !text-[14px]"
           >
-            Get Started
+            Get started
           </button>
         </div>
       </nav>
 
-      {/* Founding Member Banner */}
-      <AnimatePresence>
-        {spotsRemaining > 0 && !spotsLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="max-w-[1200px] mx-auto px-6"
+      {/* Founding spots pill - centered with glow */}
+      {!spotsLoading && !spotsError && spotsRemaining > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex justify-center -mt-4 mb-8"
+        >
+          <motion.button
+            onClick={() => navigate('/login')}
+            className="group relative px-4 py-2 rounded-full text-[13px] font-medium transition-all"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
           >
+            {/* Glow effect */}
             <div
-              className="flex items-center justify-center gap-3 py-3 px-6 rounded-full mx-auto w-fit"
+              className="absolute inset-0 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)' }}
+            />
+            {/* Pill background */}
+            <div
+              className="absolute inset-0 rounded-full"
               style={{
-                background: 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.2)',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15))',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
               }}
-            >
-              <div
-                className="w-2 h-2 rounded-full animate-pulse"
-                style={{ backgroundColor: '#06b6d4' }}
-              />
-              <span className="text-[13px]" style={{ color: '#06b6d4' }}>
-                <span className="font-semibold">{spotsRemaining} of 5</span>
-                <span className="text-[#06b6d4]/70"> founding member spots remaining</span>
+            />
+            {/* Content */}
+            <span className="relative flex items-center gap-2">
+              <span
+                className="flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold"
+                style={{ background: 'rgba(6, 182, 212, 0.3)', color: '#22d3ee' }}
+              >
+                {spotsRemaining}
               </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <span style={{ color: '#A0A0A0' }}>
+                founding spot{spotsRemaining === 1 ? '' : 's'} left
+              </span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#06b6d4"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="group-hover:translate-x-0.5 transition-transform"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </span>
+          </motion.button>
+        </motion.div>
+      )}
 
-      {/* Hero Section */}
-      <section className="max-w-[1200px] mx-auto px-6 pt-24 pb-48 text-center sm:text-left">
+      {/* Hero Section - Emotional Safety */}
+      <section className="max-w-[1200px] mx-auto px-6 pt-24 pb-20 text-center sm:text-left">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
           className="text-metadata mb-6"
         >
-          Daily Consistency
+          Quiet Progress
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
@@ -119,8 +144,8 @@ export const LandingPage = () => {
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="text-hero mb-8 max-w-[600px]"
         >
-          Master your routines. <br />
-          Built for daily dependability.
+          Build habits gently. <br />
+          Stay consistent, without pressure.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -128,8 +153,8 @@ export const LandingPage = () => {
           transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="text-[#A0A0A0] text-[16px] max-w-[480px] mb-12 leading-relaxed"
         >
-          The interface is intentional and restrained. <br />
-          Helping you focus on what matters most.
+          A calm interface for tracking what matters. <br />
+          No streaks to protect. No guilt. Just progress.
         </motion.p>
         <motion.div
            initial={{ opacity: 0 }}
@@ -141,7 +166,7 @@ export const LandingPage = () => {
               onClick={() => navigate('/login')}
               className="btn-pill-primary"
             >
-              Start Tracking
+              Start simply
             </button>
             <div className="flex items-center gap-2 text-[13px] text-[#6F6F6F]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -153,18 +178,73 @@ export const LandingPage = () => {
         </motion.div>
       </section>
 
+      {/* Philosophy Section */}
+      <section className="max-w-[1200px] mx-auto px-6 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="max-w-[520px]"
+        >
+          <p className="text-[17px] text-[#A0A0A0] leading-[1.8]">
+            Most habit apps are designed to make you feel behind.
+            This one isn't. The interface is intentional and restrained —
+            helping you focus on what matters, without the noise.
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Privacy & Forgiveness Statement */}
+      <section className="max-w-[1200px] mx-auto px-6 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="flex flex-col sm:flex-row gap-12"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255, 255, 255, 0.04)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6F6F6F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[14px] text-[#F5F5F5] mb-1 font-medium">Your data stays yours</p>
+              <p className="text-[13px] text-[#6F6F6F] leading-relaxed">
+                Row-level security. No tracking. No selling your habits.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255, 255, 255, 0.04)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6F6F6F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[14px] text-[#F5F5F5] mb-1 font-medium">Miss a day? That's okay.</p>
+              <p className="text-[13px] text-[#6F6F6F] leading-relaxed">
+                No punishment. No broken streaks. Just pick up where you left off.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
       {/* Pricing Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-32 bg-[#141414]/30">
-        <div className="mb-24">
+      <section className="max-w-[1200px] mx-auto px-6 py-32">
+        <div className="mb-20">
           <p className="text-metadata mb-4">Pricing</p>
-          <h2 className="text-section-header">Simple and calm.</h2>
+          <h2 className="text-section-header">Choose what feels right.</h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-[1100px]">
           {pricingPlans.map((plan, index) => {
-            const isDiamond = plan.tier === 'diamond';
+            const isFounding = plan.tier === 'diamond';
             const isPro = plan.tier === 'pro';
-            const diamondAvailable = isDiamond && spotsRemaining > 0;
+            const foundingAvailable = isFounding && spotsRemaining > 0;
 
             return (
               <motion.div
@@ -175,12 +255,12 @@ export const LandingPage = () => {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="group relative"
               >
-                {/* Diamond tier glow effect */}
-                {isDiamond && (
+                {/* Founding tier subtle glow - much softer */}
+                {isFounding && foundingAvailable && (
                   <div
-                    className="absolute -inset-[1px] rounded-[32px] opacity-60 blur-sm transition-opacity duration-300 group-hover:opacity-80"
+                    className="absolute -inset-[1px] rounded-[32px] opacity-30 blur-md transition-opacity duration-300 group-hover:opacity-40"
                     style={{
-                      background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)',
+                      background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.4) 0%, rgba(8, 145, 178, 0.2) 100%)',
                     }}
                   />
                 )}
@@ -188,10 +268,12 @@ export const LandingPage = () => {
                 <div
                   className="relative p-8 rounded-[32px] transition-transform duration-300 hover:translate-y-[-4px] h-full flex flex-col"
                   style={{
-                    background: isDiamond
-                      ? 'linear-gradient(180deg, #141414 0%, #0c1a1d 100%)'
+                    background: isFounding
+                      ? 'linear-gradient(180deg, #141414 0%, #111518 100%)'
                       : '#141414',
-                    border: isDiamond ? '1px solid rgba(6, 182, 212, 0.3)' : 'none',
+                    border: isFounding && foundingAvailable
+                      ? '1px solid rgba(6, 182, 212, 0.15)'
+                      : '1px solid rgba(255, 255, 255, 0.04)',
                   }}
                 >
                   <div className="flex justify-between items-start mb-8">
@@ -199,42 +281,15 @@ export const LandingPage = () => {
                       <div className="flex items-center gap-2 mb-4">
                         <h3
                           className="text-[12px] font-medium tracking-[0.08em] uppercase"
-                          style={{ color: isDiamond ? '#06b6d4' : '#6F6F6F' }}
+                          style={{ color: isFounding && foundingAvailable ? 'rgba(6, 182, 212, 0.8)' : '#6F6F6F' }}
                         >
                           {plan.name}
                         </h3>
-                        {plan.badge && (
-                          <motion.span
-                            className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: isDiamond
-                                ? spotsRemaining > 0
-                                  ? 'rgba(6, 182, 212, 0.15)'
-                                  : 'rgba(239, 68, 68, 0.15)'
-                                : 'rgba(34, 197, 94, 0.15)',
-                              color: isDiamond
-                                ? spotsRemaining > 0
-                                  ? '#06b6d4'
-                                  : '#ef4444'
-                                : '#22c55e',
-                            }}
-                            animate={isDiamond && spotsRemaining > 0 ? {
-                              boxShadow: [
-                                '0 0 0 0 rgba(6, 182, 212, 0)',
-                                '0 0 0 4px rgba(6, 182, 212, 0.1)',
-                                '0 0 0 0 rgba(6, 182, 212, 0)',
-                              ],
-                            } : {}}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          >
-                            {plan.badge}
-                          </motion.span>
-                        )}
                       </div>
                       <div className="flex items-baseline">
                         <span
                           className="text-[32px] font-semibold"
-                          style={{ color: isDiamond ? '#06b6d4' : '#F5F5F5' }}
+                          style={{ color: isFounding && foundingAvailable ? 'rgba(6, 182, 212, 0.9)' : '#F5F5F5' }}
                         >
                           {plan.price}
                         </span>
@@ -245,16 +300,25 @@ export const LandingPage = () => {
                     </div>
                   </div>
 
-                  <p className="text-[#A0A0A0] text-[15px] mb-10 leading-snug">
+                  <p className="text-[#A0A0A0] text-[15px] mb-4 leading-snug">
                     {plan.description}
                   </p>
+
+                  {/* Founding slots remaining - inside card, subtle */}
+                  {isFounding && !spotsLoading && !spotsError && (
+                    <p className="text-[13px] text-[#4F4F4F] mb-6">
+                      {spotsRemaining > 0
+                        ? `${spotsRemaining} founding spot${spotsRemaining === 1 ? '' : 's'} remaining`
+                        : 'Founding access is closed'}
+                    </p>
+                  )}
 
                   <ul className="space-y-4 mb-10 flex-grow">
                     {plan.features.map(feature => (
                       <li key={feature} className="flex items-center text-[14px] text-[#A0A0A0]">
                         <div
-                          className="w-1.5 h-1.5 rounded-full mr-3 opacity-60"
-                          style={{ backgroundColor: isDiamond ? '#06b6d4' : '#E85D4F' }}
+                          className="w-1.5 h-1.5 rounded-full mr-3 opacity-50"
+                          style={{ backgroundColor: isFounding && foundingAvailable ? '#06b6d4' : '#A0A0A0' }}
                         />
                         {feature}
                       </li>
@@ -262,19 +326,20 @@ export const LandingPage = () => {
                   </ul>
 
                   <button
-                    onClick={() => navigate('/login')}
-                    className="w-full py-3 px-6 rounded-full text-[14px] font-medium transition-all duration-200"
+                    onClick={() => foundingAvailable || !isFounding ? navigate('/login') : undefined}
+                    disabled={isFounding && !foundingAvailable}
+                    className="w-full py-3 px-6 rounded-full text-[14px] font-medium transition-all duration-200 disabled:cursor-not-allowed"
                     style={
-                      isDiamond
-                        ? diamondAvailable
+                      isFounding
+                        ? foundingAvailable
                           ? {
-                              background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                              color: '#0B0B0B',
-                              boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)',
+                              background: 'rgba(6, 182, 212, 0.15)',
+                              color: '#06b6d4',
+                              border: '1px solid rgba(6, 182, 212, 0.2)',
                             }
                           : {
-                              background: 'rgba(255, 255, 255, 0.06)',
-                              color: '#6F6F6F',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              color: '#4F4F4F',
                             }
                         : isPro
                           ? {
@@ -282,9 +347,9 @@ export const LandingPage = () => {
                               color: '#0B0B0B',
                             }
                           : {
-                              background: 'rgba(255, 255, 255, 0.06)',
+                              background: 'rgba(255, 255, 255, 0.04)',
                               color: '#A0A0A0',
-                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
                             }
                     }
                   >
@@ -295,6 +360,31 @@ export const LandingPage = () => {
             );
           })}
         </div>
+
+      </section>
+
+      {/* Final CTA - Reassuring */}
+      <section className="max-w-[1200px] mx-auto px-6 py-24 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-[24px] font-semibold text-[#F5F5F5] mb-4 tracking-tight">
+            Start where you are.
+          </h2>
+          <p className="text-[15px] text-[#6F6F6F] mb-8 max-w-[360px] mx-auto">
+            No pressure. No streaks to protect. <br />
+            You can always change later.
+          </p>
+          <button
+            onClick={() => navigate('/login')}
+            className="btn-pill-primary"
+          >
+            Begin quietly
+          </button>
+        </motion.div>
       </section>
 
       <footer className="max-w-[1200px] mx-auto px-6 py-24 border-t border-[#181818]">
@@ -312,7 +402,7 @@ export const LandingPage = () => {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
-          <span>Your data is isolated and protected with row-level security</span>
+          <span>Your data is isolated and protected</span>
         </div>
       </footer>
     </div>
