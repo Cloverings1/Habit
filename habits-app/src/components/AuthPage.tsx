@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { TermsModal } from './TermsModal';
 import { FoundingCelebration } from './FoundingCelebration';
@@ -8,7 +8,9 @@ import { useDiamondSpots, claimFoundingSlot } from '../hooks/useDiamondSpots';
 import { HABIT_COLORS } from '../types';
 
 export const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const defaultToSignup = searchParams.get('mode') === 'signup';
+  const [isLogin, setIsLogin] = useState(!defaultToSignup);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');

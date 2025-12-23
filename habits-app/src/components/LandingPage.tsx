@@ -53,20 +53,20 @@ export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F5] selection:bg-[#E85D4F]/30 overflow-x-hidden">
       {/* Navigation */}
-      <nav className="max-w-[1200px] mx-auto px-6 py-10 flex justify-between items-center">
+      <nav className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 sm:py-10 flex justify-between items-center">
         <div className="text-[18px] font-semibold tracking-[-0.01em]">
           Habits
         </div>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 sm:gap-8">
           <button
             onClick={() => navigate('/login')}
-            className="text-[14px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors"
+            className="text-[13px] sm:text-[14px] text-[#A0A0A0] hover:text-[#F5F5F5] transition-colors"
           >
             Sign In
           </button>
           <button
-            onClick={() => navigate('/login')}
-            className="btn-pill-primary !py-2 !px-6 !text-[14px]"
+            onClick={() => navigate('/login?mode=signup')}
+            className="btn-pill-primary !py-2 !px-4 sm:!px-6 !text-[13px] sm:!text-[14px]"
           >
             Get started
           </button>
@@ -79,10 +79,10 @@ export const LandingPage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center -mt-4 mb-8"
+          className="flex justify-center mt-2 sm:-mt-4 mb-4 sm:mb-8"
         >
           <motion.button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?mode=signup')}
             className="group relative px-4 py-2 rounded-full text-[13px] font-medium transition-all"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
@@ -130,7 +130,7 @@ export const LandingPage = () => {
       )}
 
       {/* Hero Section - Emotional Safety */}
-      <section className="max-w-[1200px] mx-auto px-6 pt-24 pb-20 text-center sm:text-left">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-12 sm:pt-24 pb-12 sm:pb-20 text-center sm:text-left">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -143,7 +143,7 @@ export const LandingPage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="text-hero mb-8 max-w-[600px]"
+          className="text-[28px] sm:text-[34px] font-semibold tracking-tight leading-[1.2] mb-6 sm:mb-8 max-w-[600px] mx-auto sm:mx-0"
         >
           Build habits gently. <br />
           Stay consistent, without pressure.
@@ -152,7 +152,7 @@ export const LandingPage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[#A0A0A0] text-[16px] max-w-[480px] mb-12 leading-relaxed"
+          className="text-[#A0A0A0] text-[15px] sm:text-[16px] max-w-[480px] mx-auto sm:mx-0 mb-8 sm:mb-12 leading-relaxed"
         >
           A calm interface for tracking what matters. <br />
           No streaks to protect. No guilt. Just progress.
@@ -164,7 +164,7 @@ export const LandingPage = () => {
            className="flex flex-col sm:flex-row items-center gap-6"
         >
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?mode=signup')}
               className="btn-pill-primary"
             >
               Start simply
@@ -180,15 +180,15 @@ export const LandingPage = () => {
       </section>
 
       {/* Philosophy Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-20">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="max-w-[520px]"
+          className="max-w-[520px] mx-auto sm:mx-0 text-center sm:text-left"
         >
-          <p className="text-[17px] text-[#A0A0A0] leading-[1.8]">
+          <p className="text-[15px] sm:text-[17px] text-[#A0A0A0] leading-[1.8]">
             Most habit apps are designed to make you feel behind.
             This one isn't. The interface is intentional and restrained —
             helping you focus on what matters, without the noise.
@@ -197,13 +197,13 @@ export const LandingPage = () => {
       </section>
 
       {/* Privacy & Forgiveness Statement */}
-      <section className="max-w-[1200px] mx-auto px-6 py-16">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="flex flex-col sm:flex-row gap-12"
+          className="flex flex-col sm:flex-row gap-6 sm:gap-12"
         >
           <div className="flex items-start gap-4">
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255, 255, 255, 0.04)' }}>
@@ -235,13 +235,13 @@ export const LandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-32">
-        <div className="mb-20">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-16 sm:py-32">
+        <div className="mb-10 sm:mb-20 text-center sm:text-left">
           <p className="text-metadata mb-4">Pricing</p>
           <h2 className="text-section-header">Choose what feels right.</h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-[1100px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-[1100px]">
           {pricingPlans.map((plan, index) => {
             const isFounding = plan.tier === 'diamond';
             const isPro = plan.tier === 'pro';
@@ -267,7 +267,7 @@ export const LandingPage = () => {
                 )}
 
                 <div
-                  className="relative p-8 rounded-[32px] transition-transform duration-300 hover:translate-y-[-4px] h-full flex flex-col"
+                  className="relative p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] transition-transform duration-300 hover:translate-y-[-4px] h-full flex flex-col"
                   style={{
                     background: isFounding
                       ? 'linear-gradient(180deg, #141414 0%, #111518 100%)'
@@ -360,7 +360,7 @@ export const LandingPage = () => {
                   </ul>
 
                   <button
-                    onClick={() => foundingAvailable || !isFounding ? navigate('/login') : undefined}
+                    onClick={() => foundingAvailable || !isFounding ? navigate('/login?mode=signup') : undefined}
                     disabled={isFounding && !foundingAvailable}
                     className="w-full py-3 px-6 rounded-full text-[14px] font-medium transition-all duration-200 disabled:cursor-not-allowed"
                     style={
@@ -413,7 +413,7 @@ export const LandingPage = () => {
             You can always change later.
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?mode=signup')}
             className="btn-pill-primary"
           >
             Begin quietly
