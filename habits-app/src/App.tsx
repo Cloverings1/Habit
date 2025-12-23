@@ -118,17 +118,6 @@ function App() {
 
   return (
     <ThemeProvider>
-      {/* Dev Branch Banner */}
-      <div
-        className="fixed top-0 left-0 right-0 z-[100] text-center py-1 text-[10px] tracking-widest uppercase"
-        style={{
-          background: 'rgba(251, 191, 36, 0.08)',
-          color: 'rgba(251, 191, 36, 0.6)',
-          borderBottom: '1px solid rgba(251, 191, 36, 0.1)',
-        }}
-      >
-        dev branch — internal use only
-      </div>
       <SubscriptionProvider>
         <HabitsProvider>
           <Routes>
