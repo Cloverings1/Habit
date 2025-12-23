@@ -8,8 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import { PaywallModal } from './PaywallModal';
 import { ConsistencyReport } from './ConsistencyReport';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
-import { Lock, Camera, ChevronDown, Check, X } from 'lucide-react';
+import { FeedbackModal } from './FeedbackModal';
+import { AdminFeedbackView } from './AdminFeedbackView';
+import { Lock, Camera, ChevronDown, Check, X, MessageCircle } from 'lucide-react';
 import { validateAvatarFile } from '../utils/avatarUtils';
+
+const ADMIN_EMAIL = 'jonas@jonasinfocus.com';
 
 export const Settings = () => {
   const { habits, userName, setUserName, removeHabit } = useHabits();
@@ -41,6 +45,10 @@ export const Settings = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showAdminFeedback, setShowAdminFeedback] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMessage({ type, text });
@@ -150,6 +158,11 @@ export const Settings = () => {
     }
     return 'Free';
   };
+
+  // Show admin feedback view if active
+  if (showAdminFeedback && isAdmin) {
+    return <AdminFeedbackView onBack={() => setShowAdminFeedback(false)} />;
+  }
 
   return (
     <div className="main-content">
@@ -514,6 +527,39 @@ export const Settings = () => {
         </div>
       </motion.section>
 
+      {/* Feedback Section */}
+      <motion.section
+        className="mb-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+      >
+        <h2 className="text-[12px] uppercase tracking-wide mb-4" style={{ color: 'var(--text-muted)' }}>
+          Support
+        </h2>
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowFeedbackModal(true)}
+            className="flex items-center gap-2 text-[15px] hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <MessageCircle size={16} style={{ color: 'var(--text-muted)' }} />
+            Send feedback
+          </button>
+
+          {/* Admin-only: User Feedback */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdminFeedback(true)}
+              className="text-[15px] hover:opacity-70 transition-opacity block"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              User Feedback
+            </button>
+          )}
+        </div>
+      </motion.section>
+
       {/* Account */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -554,6 +600,11 @@ export const Settings = () => {
       <ResetConfirmationModal
         isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
+      />
+
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
       />
 
       {/* Status Toast */}
