@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About
 
-Habits is a SaaS web app helping people master their routines and build daily dependability. The design philosophy is "quiet, premium, low-stimulus" - intentional and restrained interfaces that let users focus on what matters.
+Habits is a premium SaaS web app helping people build consistent daily routines. The design philosophy is **"quiet, premium, low-stimulus"** - intentional and restrained interfaces that let users focus on what matters. Features cloud sync, subscription tiers, and a founding member program with lifetime access.
+
+**Production URL**: https://habit-psi.vercel.app
 
 ## Commands
 
 ```bash
-cd habits-app && npm run dev      # Start dev server (Vite)
+cd habits-app && npm run dev      # Start dev server (Vite) - localhost:5173
 cd habits-app && npm run build    # TypeScript check + production build
 cd habits-app && npm run lint     # ESLint
 cd habits-app && npm run preview  # Preview production build
@@ -22,536 +24,406 @@ cd habits-app && npm run preview  # Preview production build
 - **Tailwind CSS 4** (via PostCSS, `darkMode: 'class'`)
 - **Framer Motion** for animations
 - **Lucide React** for icons
-- **Supabase** for auth (email/password)
-- **localStorage** for habit data persistence
+- **Supabase** for auth, database, storage, and realtime
+- **Stripe** for payments (via Edge Functions)
+- **jsPDF** for PDF report generation
 
 ## Architecture
 
 ```
-habits-app/src/
-├── App.tsx              # Root component with view routing
-├── main.tsx             # Entry point
-├── index.css            # Design system + Tailwind
-├── types/index.ts       # TypeScript types
-├── contexts/
-│   ├── HabitsContext.tsx  # Habits state (CRUD, completions, streaks)
-│   └── ThemeContext.tsx   # Light/dark theme
-├── components/
-│   ├── LandingPage.tsx    # Marketing page with pricing
-│   ├── AuthPage.tsx       # Login/signup (Supabase)
-│   ├── Dashboard.tsx      # Main habit tracking view
-│   ├── Calendar.tsx       # Month view
-│   ├── Stats.tsx          # Analytics (streaks, completion rates)
-│   ├── Settings.tsx       # User preferences
-│   ├── Sidebar.tsx        # Navigation
-│   ├── HabitCard.tsx      # Stacked card UI for habits
-│   ├── WeekView.tsx       # Date strip selector
-│   └── AddHabitModal.tsx  # Habit creation modal
-└── utils/
-    ├── storage.ts         # localStorage wrapper (import/export)
-    ├── supabase.ts        # Supabase client
-    └── dateUtils.ts       # Date formatting, streak calculation
+habits-app/
+├── src/
+│   ├── App.tsx                    # Root component with routing
+│   ├── main.tsx                   # Entry point
+│   ├── index.css                  # Design system + Tailwind
+│   ├── types/index.ts             # TypeScript types
+│   ├── contexts/
+│   │   ├── AuthContext.tsx        # Auth state, profile updates, avatar upload
+│   │   ├── HabitsContext.tsx      # Habit CRUD, completions, streaks
+│   │   ├── SubscriptionContext.tsx # Subscription status, Stripe integration
+│   │   └── ThemeContext.tsx       # Light/dark theme
+│   ├── hooks/
+│   │   └── useDiamondSpots.ts     # Founding member slot management
+│   ├── components/
+│   │   ├── Pages/
+│   │   │   ├── LandingPage.tsx    # Marketing page with pricing
+│   │   │   ├── AuthPage.tsx       # Login/signup with founding claim
+│   │   │   ├── Dashboard.tsx      # Main habit tracking view
+│   │   │   ├── Calendar.tsx       # Month view
+│   │   │   ├── Stats.tsx          # Analytics & streak history
+│   │   │   └── Settings.tsx       # User preferences, admin panel
+│   │   ├── Modals/
+│   │   │   ├── AddHabitModal.tsx        # Create habit
+│   │   │   ├── EditHabitModal.tsx       # Edit habit
+│   │   │   ├── PaywallModal.tsx         # Upgrade prompt
+│   │   │   ├── FoundingCelebration.tsx  # Epic confetti celebration
+│   │   │   ├── FeedbackModal.tsx        # User feedback/bug reports
+│   │   │   ├── ConsistencyReport.tsx    # PDF report preview
+│   │   │   └── TermsModal.tsx           # T&C acceptance
+│   │   ├── Reusable/
+│   │   │   ├── HabitCard.tsx      # Single habit with toggle
+│   │   │   ├── WeekView.tsx       # Date selector with dots
+│   │   │   ├── CompletionDots.tsx # Visual completion indicators
+│   │   │   ├── GlobalStreak.tsx   # Streak counter with emoji
+│   │   │   └── Navigation.tsx     # Bottom nav bar
+│   │   └── Admin/
+│   │       └── AdminFeedbackView.tsx  # Admin feedback management
+│   └── utils/
+│       ├── supabase.ts            # Supabase client
+│       ├── stripe.ts              # Stripe integration
+│       ├── dateUtils.ts           # Date formatting, streak calculation
+│       ├── storage.ts             # localStorage wrapper
+│       ├── reportGenerator.ts     # PDF report generation
+│       ├── avatarUtils.ts         # Avatar validation
+│       └── motivationalMessages.ts # Progress-based messages
+├── supabase/
+│   ├── migrations/                # SQL migrations (3 files)
+│   ├── functions/                 # Edge Functions (Stripe)
+│   │   ├── stripe-webhook/        # Handle Stripe events
+│   │   ├── create-checkout-session/
+│   │   └── create-portal-session/
+│   └── email-templates/           # Custom auth emails
+├── public/
+│   └── og-image.png               # Social media preview
+└── index.html                     # Entry HTML with OG meta tags
 ```
+
+## Subscription Tiers
+
+| Tier | Price | Features |
+|------|-------|----------|
+| **Free** | $0 | Up to 3 habits, daily/weekly views, local storage |
+| **Pro** | $9/month | Unlimited habits, cloud sync, PDF reports |
+| **Diamond** | $0 (Lifetime) | All Pro features forever, founding member exclusive |
+
+### Founding Member System
+
+Limited slots (currently 5) for lifetime Diamond access:
+- Auto-claimed on signup if spots available
+- Epic celebration modal with confetti animation
+- Managed via `founding_slots` table and RPC functions
+- Admin can view/revoke in Settings (jonas@jonasinfocus.com only)
+
+## Database Schema (Supabase)
+
+### Tables
+
+```sql
+-- User subscription data
+user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users,
+  stripe_customer_id TEXT UNIQUE,
+  subscription_status TEXT, -- 'free' | 'active' | 'canceled' | 'past_due' | 'diamond'
+  subscription_id TEXT,
+  price_id TEXT,
+  current_period_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN
+)
+
+-- User habits
+habits (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
+  name TEXT,
+  color TEXT,
+  frequency TEXT, -- 'daily' | 'weekly' | 'custom'
+  custom_days JSONB -- {monday: true, tuesday: false, ...}
+)
+
+-- Habit completions
+completions (
+  id UUID PRIMARY KEY,
+  user_id UUID,
+  habit_id UUID REFERENCES habits,
+  date TEXT -- YYYY-MM-DD format
+)
+
+-- Founding member slots
+founding_slots (
+  id UUID PRIMARY KEY,
+  claimed_by_user_id UUID REFERENCES auth.users,
+  claimed_at TIMESTAMPTZ
+)
+
+-- User feedback/bug reports
+user_feedback (
+  id UUID PRIMARY KEY,
+  user_id UUID,
+  user_email TEXT,
+  type TEXT, -- 'feedback' | 'bug'
+  priority TEXT, -- 'fyi' | 'minor' | 'important' | 'critical'
+  title TEXT,
+  message TEXT,
+  status TEXT, -- 'open' | 'in_progress' | 'resolved'
+  page TEXT,
+  platform TEXT,
+  app_version TEXT
+)
+
+-- Streak history
+broken_streaks (
+  id UUID PRIMARY KEY,
+  user_id UUID,
+  habit_id UUID,
+  streak_length INT,
+  broken_date DATE
+)
+```
+
+### RPC Functions
+
+```sql
+-- Founding slots
+get_founding_slots_remaining() -> INTEGER
+get_founding_slots_total() -> INTEGER
+claim_founding_slot(user_id UUID) -> {success, error, message}
+get_founding_users_info() -> [{user_id, email, display_name, claimed_at}]
+revoke_founding_status(target_user_id UUID) -> {success, error, message}
+
+-- User helpers
+is_subscribed(user_uuid UUID) -> BOOLEAN
+is_feedback_admin() -> BOOLEAN
+```
+
+### Storage Buckets
+
+- `avatars` - User profile images (2MB max, public)
 
 ## Key Patterns
 
-**State**: React Context (`useHabits`, `useTheme` hooks). Habits sync to localStorage on every change.
+### State Management
 
-**Data Model**:
-- `Habit`: id, name, color, createdAt, recurrence (daily/weekly/custom), customDays
-- `CompletedDay`: habitId + date (YYYY-MM-DD)
-- Dates stored as ISO strings, compared using YYYY-MM-DD format
+Four React Contexts with custom hooks:
 
-**Navigation**: Simple `ViewType` union for in-app views. LandingPage/AuthPage use react-router-dom.
+```typescript
+const { user, signOut, updateDisplayName, uploadAvatar } = useAuth();
+const { habits, addHabit, toggleCompletion, isCompleted } = useHabits();
+const { isPro, isDiamond, hasPremiumAccess, openCheckout } = useSubscription();
+const { theme, toggleTheme } = useTheme();
+```
 
-**Theme**: Dark mode default. Class `light` applied to `document.documentElement` for light mode.
+### Subscription Checking
 
-## Design System
+```typescript
+// In components
+const { hasPremiumAccess, isDiamond, isPro } = useSubscription();
 
-CSS classes defined in `index.css` following "liquid glass" aesthetic:
+// hasPremiumAccess = isPro || isDiamond (use for feature gating)
+if (!hasPremiumAccess) {
+  setShowPaywall(true);
+}
+```
 
-- **Layout**: `.app-layout`, `.main-content`, `.sidebar`
-- **Typography**: `.text-hero`, `.text-display`, `.text-section-header`, `.text-metadata`
-- **Buttons**: `.btn-pill-primary`, `.btn-pill-secondary`, `.btn-ghost`
-- **Cards**: `.habit-card`, `.card-pill`, `.card-rounded`
-- **Modal**: `.liquid-glass-modal`, `.liquid-glass-backdrop`, `.liquid-glass-input`
-- **Stats**: `.stat-number`, `.stat-label`, `.progress-bar`
+### Habit Limit (Free Tier)
 
-CSS variables: `--bg-primary`, `--bg-secondary`, `--accent` (#E85D4F), `--text-primary`, `--text-secondary`, `--text-muted`
+```typescript
+const { habitLimitReached } = useHabits();
+// Returns true if !hasPremiumAccess && habits.length >= 3
+```
+
+### Optimistic Updates
+
+```typescript
+// Toggle completion updates UI immediately, syncs to server in background
+await toggleCompletion(habitId, date);
+// If server fails, UI reverts automatically
+```
+
+### Founding Slot Claim Flow
+
+```typescript
+// In AuthPage.tsx after signup
+const { spotsRemaining } = useDiamondSpots();
+if (spotsRemaining > 0) {
+  const result = await claimFoundingSlot(userId);
+  if (result.success) {
+    setShowFoundingCelebration(true); // Epic confetti modal
+  }
+}
+```
 
 ## Environment Variables
 
-Required for Supabase auth:
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+```bash
+# Supabase
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+
+# Stripe
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
+VITE_STRIPE_MONTHLY_PRICE_ID=price_...
+VITE_STRIPE_ANNUAL_PRICE_ID=price_...
+
+# Edge Functions (in Supabase dashboard)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-## Pricing Tiers
+## Admin Features
 
-- **Free**: Up to 3 habits, daily/weekly views, local storage
-- **Pro** ($9/mo): Unlimited habits, cloud sync, advanced analytics
+Admin email: `jonas@jonasinfocus.com`
+
+- **Founding Slots Management**: View claimed slots, user info, revoke status
+- **User Feedback**: View/filter feedback, add internal notes, mark resolved
+- Located in Settings.tsx, gated by email check
+
+## Key Components
+
+### FoundingCelebration.tsx
+Epic celebration modal with:
+- 60 confetti particles with physics
+- Animated diamond icon with glow rings
+- Gradient text animation
+- Feature unlock display
+
+### FeedbackModal.tsx
+3-step wizard:
+1. Select type (Feedback/Bug)
+2. Select priority (FYI/Minor/Important/Critical)
+3. Enter title and description
+
+### PaywallModal.tsx
+Shows when free user hits limits:
+- Feature comparison table
+- Monthly/annual pricing toggle
+- Redirects to Stripe checkout
+
+## Stripe Integration
+
+### Edge Functions
+
+```typescript
+// create-checkout-session - Creates Stripe checkout
+// create-portal-session - Opens billing portal
+// stripe-webhook - Handles subscription events:
+//   - customer.subscription.created/updated/deleted
+//   - invoice.payment_succeeded
+```
+
+### Webhook Flow
+1. Stripe sends event to Edge Function
+2. Function updates `user_profiles.subscription_status`
+3. SubscriptionContext receives realtime update
+4. UI updates automatically
 
 ---
 
 # UI/UX Design System Guide
 
-This section ensures design consistency when building new features.
-
 ## Design Philosophy
 
-**"Quiet, Premium, Low-Stimulus"** - Every UI decision follows these principles:
+**"Quiet, Premium, Low-Stimulus"**
 
 1. **Restraint over decoration** - No unnecessary visual elements
-2. **Typography-first hierarchy** - Size and weight, not color, create hierarchy
+2. **Typography-first hierarchy** - Size and weight create hierarchy
 3. **Minimal color palette** - Dark backgrounds with single accent
 4. **Glass morphism** - Frosted surfaces create depth
-5. **Smooth, subtle motion** - 200-400ms transitions, no jarring animations
-6. **High contrast** - Accessibility through clear text/background contrast
+5. **Smooth, subtle motion** - 200-400ms transitions
+6. **High contrast** - Accessibility through clear contrast
 
 ## Color System
 
-### CSS Variables (defined in `index.css`)
+### CSS Variables (Dark Mode Default)
+
 ```css
-/* Dark Mode (Default) */
 --bg-primary: #0B0B0B          /* Main background */
 --bg-secondary: #141414        /* Cards, containers */
 --bg-tertiary: #181818         /* Elevated surfaces */
---accent: #E85D4F              /* Primary action color (coral/rust) */
---text-primary: #F5F5F5        /* Headlines, important text */
+--accent: #E85D4F              /* Primary action (coral) */
+--text-primary: #F5F5F5        /* Headlines */
 --text-secondary: #A0A0A0      /* Body text */
---text-muted: #6F6F6F          /* Metadata, labels */
---surface-glass: rgba(255, 255, 255, 0.06)  /* Glass surfaces */
---border-secondary: rgba(255, 255, 255, 0.12) /* Subtle borders */
+--text-muted: #6F6F6F          /* Metadata */
+```
+
+### Diamond/Founding Accent
+
+```css
+/* Cyan gradient for founding member elements */
+background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+border: 1px solid rgba(6, 182, 212, 0.25);
+color: #22d3ee;
 ```
 
 ### Habit Color Palette
+
 ```typescript
 const HABIT_COLORS = [
-  '#ef4444',  // red
-  '#f97316',  // orange
-  '#eab308',  // yellow
-  '#22c55e',  // green
-  '#14b8a6',  // teal
-  '#3b82f6',  // blue
-  '#8b5cf6',  // violet
-  '#ec4899',  // pink
-  '#6366f1',  // indigo
-  '#06b6d4',  // cyan
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#06b6d4'
 ];
 ```
 
-### When to Use Colors
-- **Accent (#E85D4F)**: Primary buttons, active states, important indicators
-- **Habit colors**: Individual habit identification only
-- **Text colors**: Follow hierarchy (primary → secondary → muted)
-- **NEVER** use bright colors for backgrounds or large areas
-
 ## Typography System
 
-### Font Stack
-```css
-font-family: 'SF Pro Display', 'SF Pro Text', 'Inter', -apple-system,
-             BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
-```
-
-### Typography Classes (Use These)
 | Class | Size | Weight | Use For |
 |-------|------|--------|---------|
-| `.text-hero` | 34px | 600 | Landing page headlines |
-| `.text-display` | 32px | 600 | Page titles (Dashboard, Stats) |
+| `.text-hero` | 34px | 600 | Landing headlines |
+| `.text-display` | 32px | 600 | Page titles |
 | `.text-section-header` | 22px | 500 | Section headers |
-| `.text-title` | 18px | 500 | Card titles, modal headers |
-| `.text-body-main` | 15px | 400 | Body text, descriptions |
-| `.text-metadata` | 12px | 500 | Labels, timestamps (uppercase) |
+| `.text-title` | 18px | 500 | Modal headers |
+| `.text-body-main` | 15px | 400 | Body text |
+| `.text-metadata` | 12px | 500 | Labels (uppercase) |
 | `.stat-number` | 64px | 500 | Large statistics |
-| `.stat-label` | 13px | 400 | Stat descriptions |
 
-### Typography Rules
-- Headlines: -0.02em letter-spacing
-- Metadata: 0.08em letter-spacing, uppercase
-- Line height: 1.5 for body text
-- NEVER use more than 3 type sizes on one screen
+## Animation Patterns
 
-## Component Patterns
+```typescript
+// Standard easing for all animations
+const EASE = [0.32, 0.72, 0, 1];
 
-### Button Styles
-```jsx
-// Primary action (white background)
-<button className="btn-pill-primary">Save habit</button>
+// Page transitions
+initial={{ opacity: 0 }}
+animate={{ opacity: 1, transition: { duration: 0.2 } }}
+exit={{ opacity: 0, transition: { duration: 0.15 } }}
 
-// Secondary action (transparent with border)
-<button className="btn-pill-secondary">Cancel</button>
+// List stagger
+transition={{ delay: index * 0.05 }}
 
-// Ghost/tertiary (minimal, text only)
-<button className="btn-ghost">Learn more</button>
-
-// Glass modal primary
-<button className="liquid-glass-btn-primary">Continue</button>
-
-// Glass modal secondary
-<button className="liquid-glass-btn-secondary">Cancel</button>
+// Interactive feedback
+whileTap={{ scale: 0.95 }}
+whileHover={{ scale: 1.02 }}
 ```
 
-### Card Patterns
-```jsx
-// Habit card (stacked effect)
-<div className="habit-card" style={{ marginTop: index === 0 ? 0 : -20 }}>
+## Modal Pattern
 
-// Glass container
-<div className="card-pill">
-
-// Solid rounded container
-<div className="card-rounded">
-```
-
-### Input Patterns
-```jsx
-// Standard text input
-<input className="liquid-glass-input" placeholder="..." />
-
-// Segmented control container
-<div className="liquid-glass-segment">
-  <button className="liquid-glass-segment-btn active">Daily</button>
-  <button className="liquid-glass-segment-btn">Weekly</button>
-</div>
-
-// Color picker button
-<button className="liquid-glass-color-btn" style={{ backgroundColor: color }} />
-
-// Day selector button (Mon, Tue, etc.)
-<button className="liquid-glass-day-btn">M</button>
-```
-
-## Modal Patterns
-
-### Standard Modal Structure
 ```jsx
 <AnimatePresence>
   {isOpen && (
     <>
-      {/* Backdrop - always clickable to close */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-        onClick={onClose}
-        className="fixed inset-0 z-50 liquid-glass-backdrop"
-      />
-
-      {/* Modal container */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                   z-50 w-full max-w-[400px] px-7 py-8 liquid-glass-modal"
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-title">Modal Title</h2>
-          <button onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-
+      <motion.div className="liquid-glass-backdrop" onClick={onClose} />
+      <motion.div className="liquid-glass-modal">
+        {/* Header with close button */}
         {/* Content */}
-        {children}
+        {/* Action buttons */}
       </motion.div>
     </>
   )}
 </AnimatePresence>
 ```
 
-### Modal Props Convention
-```typescript
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-```
-
-### Modal Width Guidelines
-- Standard forms: `max-w-[400px]`
-- Paywall/pricing: `max-w-[420px]`
-- Reports/content-heavy: `max-w-[520px]`
-- Scrollable content: add `max-h-[85vh] overflow-y-auto`
-
-## Animation Patterns
-
-### Standard Easing
-```typescript
-const EASE = [0.32, 0.72, 0, 1]; // Use this for all custom animations
-```
-
-### Page Transitions
-```typescript
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.2 } },
-  exit: { opacity: 0, transition: { duration: 0.15 } },
-};
-```
-
-### Staggered List Items
-```jsx
-<motion.div
-  initial={{ opacity: 0, y: 10 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: index * 0.05 }}  // 50ms stagger
->
-```
-
-### Interactive Feedback
-```jsx
-// Buttons and clickable items
-whileTap={{ scale: 0.95 }}  // or 0.98 for larger elements
-
-// Hover states (desktop)
-whileHover={{ scale: 1.02 }}
-```
-
-### Conditional Content
-```jsx
-<AnimatePresence>
-  {showContent && (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.3, ease: EASE }}
-    />
-  )}
-</AnimatePresence>
-```
-
-### Animation Rules
-- Duration: 0.2-0.4s (never longer)
-- Always use `AnimatePresence` for exit animations
-- Stagger delay: 0.05s between items
-- Never animate colors or complex transforms simultaneously
-
-## Form Patterns
-
-### Form Structure
-```jsx
-<form onSubmit={handleSubmit} className="space-y-6">
-  {/* Each field with consistent spacing */}
-  <div>
-    <label className="text-metadata block mb-2">FIELD LABEL</label>
-    <input className="liquid-glass-input w-full" />
-  </div>
-
-  {/* Actions at bottom */}
-  <button
-    type="submit"
-    className="liquid-glass-btn-primary w-full"
-    disabled={!isValid || isLoading}
-  >
-    {isLoading ? 'Loading...' : 'Submit'}
-  </button>
-</form>
-```
-
-### Validation States
-```jsx
-// Disable submit when invalid
-disabled={!habitName.trim()}
-
-// Show loading state
-{isLoading ? 'Saving...' : 'Save'}
-
-// Error display
-{error && (
-  <motion.p
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="text-sm"
-    style={{ color: 'var(--accent)' }}
-  >
-    {error}
-  </motion.p>
-)}
-```
-
-### Limit Warnings (Free Tier)
-```jsx
-{isAtLimit && (
-  <motion.div
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="p-4 rounded-xl mb-4"
-    style={{ background: 'rgba(232, 93, 79, 0.1)' }}
-  >
-    <p className="text-sm">You've reached the 3 habit limit.</p>
-    <button onClick={() => setShowPaywall(true)}>
-      Upgrade to Pro
-    </button>
-  </motion.div>
-)}
-```
-
-## Loading & Error States
-
-### Loading States
-```jsx
-// Full page loading - return null to prevent flash
-if (loading) return null;
-
-// Button loading
-<button disabled={isLoading}>
-  {isLoading ? 'Loading...' : 'Continue'}
-</button>
-
-// Async operation loading
-const [isExporting, setIsExporting] = useState(false);
-const handleExport = async () => {
-  setIsExporting(true);
-  try {
-    await exportData();
-  } finally {
-    setIsExporting(false);
-  }
-};
-```
-
-### Error Display
-```jsx
-{error && (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="text-sm mb-4"
-    style={{ color: 'var(--accent)' }}
-  >
-    {error}
-  </motion.div>
-)}
-```
-
-### Empty States
-```jsx
-{items.length === 0 ? (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="flex flex-col items-center justify-center py-8 text-center"
-  >
-    <h3 className="text-title mb-2">No items yet</h3>
-    <p className="text-body mb-6 max-w-[260px]" style={{ color: 'var(--text-secondary)' }}>
-      Helpful description of what to do.
-    </p>
-    <button className="btn-pill-primary">Create first item</button>
-  </motion.div>
-) : (
-  <ItemsList items={items} />
-)}
-```
-
-## Responsive Design
-
-### Breakpoints
-- Mobile: Default (no prefix)
-- Tablet: `sm:` (640px)
-- Desktop: `md:` (768px)
-- Large: `lg:` (1024px)
-
-### Common Patterns
-```jsx
-// Stack on mobile, row on desktop
-<div className="flex flex-col md:flex-row gap-4">
-
-// Grid columns
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-// Max width container
-<div className="max-w-[1200px] mx-auto px-6">
-
-// Text alignment
-<section className="text-center sm:text-left">
-```
-
-### Layout Constraints
-- Main content: `max-width: 1200px`
-- Modals: `max-width: 400-520px`
-- Bottom padding: `100px` (for fixed nav)
-
-## Navigation Patterns
-
-### Bottom Navigation
-- Fixed position at bottom
-- 4 tabs maximum
-- Active indicator: horizontal bar for stats, dot for others
-- Icons: 20-24px, consistent stroke width
-- Glass morphism: `bg-black/80 backdrop-blur-xl`
-
-### View Routing
-```typescript
-type ViewType = 'home' | 'stats' | 'calendar' | 'settings';
-
-// In App.tsx
-const [currentView, setCurrentView] = useState<ViewType>('home');
-
-<Navigation
-  currentView={currentView}
-  onNavigate={setCurrentView}
-/>
-```
-
 ## Component Checklist
 
-When building new components, ensure:
+When building new components:
 
-- [ ] Uses CSS variables for colors (not hardcoded)
+- [ ] Uses CSS variables for colors
 - [ ] Follows typography class hierarchy
 - [ ] Has Framer Motion entrance animation
 - [ ] Uses `whileTap` for interactive elements
-- [ ] Follows modal pattern if overlay
-- [ ] Has proper loading state
-- [ ] Has error handling
+- [ ] Has proper loading/error states
 - [ ] Uses `AnimatePresence` for conditional content
-- [ ] Respects spacing conventions (4px increments)
-- [ ] Matches existing component patterns
-
-## File Organization
-
-```
-src/components/
-├── Page Components (single-use views)
-│   ├── Dashboard.tsx
-│   ├── Calendar.tsx
-│   ├── Stats.tsx
-│   └── Settings.tsx
-├── Modal Components (overlay patterns)
-│   ├── AddHabitModal.tsx
-│   ├── PaywallModal.tsx
-│   └── ConsistencyReport.tsx
-├── Navigation Components
-│   ├── Navigation.tsx (bottom nav)
-│   └── Sidebar.tsx (desktop nav)
-└── Reusable Components
-    ├── HabitCard.tsx
-    ├── WeekView.tsx
-    ├── MonthGrid.tsx
-    └── StreakCounter.tsx
-```
+- [ ] Respects 4px spacing increments
+- [ ] Handles `hasPremiumAccess` for paywalled features
 
 ## Quick Reference
 
 | Element | Class/Pattern |
 |---------|---------------|
 | Page title | `.text-display` |
-| Section header | `.text-section-header` |
-| Primary button | `.btn-pill-primary` or `.liquid-glass-btn-primary` |
-| Secondary button | `.btn-pill-secondary` or `.liquid-glass-btn-secondary` |
+| Primary button | `.btn-pill-primary` |
+| Secondary button | `.btn-pill-secondary` |
 | Text input | `.liquid-glass-input` |
-| Modal wrapper | `.liquid-glass-modal` + `.liquid-glass-backdrop` |
-| Habit card | `.habit-card` with stacked margins |
-| Accent color | `var(--accent)` or `#E85D4F` |
-| Body text color | `var(--text-secondary)` |
-| Muted text color | `var(--text-muted)` |
+| Modal wrapper | `.liquid-glass-modal` |
+| Accent color | `var(--accent)` / `#E85D4F` |
+| Diamond accent | `#22d3ee` / `#06b6d4` |
 | Animation ease | `[0.32, 0.72, 0, 1]` |
-| Stagger delay | `index * 0.05` |
 | Tap feedback | `whileTap={{ scale: 0.95 }}` |

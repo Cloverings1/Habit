@@ -6,6 +6,33 @@ All notable changes to Habits will be documented in this file.
 
 ## December 23, 2025
 
+### Mobile Optimization & UX Improvements
+- Optimized landing page for mobile devices (responsive spacing, typography)
+- Updated all CTA buttons to navigate directly to signup
+- Added `?mode=signup` URL parameter support for direct signup flow
+- Fixed founding spots pill positioning on mobile
+
+### Diamond Plan Display Fix
+- Settings now correctly shows "Diamond Plan" for founding members
+- Added "Lifetime Access" badge for Diamond users
+- Premium features (PDF export, unlimited habits) now properly gated by `hasPremiumAccess`
+
+### Open Graph Meta Tags
+- Added OG image for social media/iMessage link previews
+- Updated page title to "Habits - Build habits gently"
+- Added meta description for SEO
+
+### Founding Member System
+- Implemented founding slots with auto-claim on signup
+- Epic celebration modal with 60 confetti particles
+- Admin panel for viewing/revoking founding status
+- Real-time slot availability display
+
+### User Feedback System
+- 3-step feedback/bug report wizard
+- Priority levels: FYI, Minor, Important, Critical
+- Admin view for managing feedback (jonas@jonasinfocus.com)
+
 ### Alpha Launch
 **9:38 AM CST**
 

@@ -4,6 +4,98 @@ A running log of what's been shipped. Written by Jonas.
 
 ---
 
+## December 23, 2025
+
+### Founding Member System (Major Feature)
+
+Built out a complete founding member system with limited lifetime access slots.
+
+**What was built:**
+- `founding_slots` table with 5 pre-allocated slots
+- Auto-claim on signup via `claim_founding_slot()` RPC function
+- Real-time slot availability using Supabase subscriptions
+- Epic celebration modal (`FoundingCelebration.tsx`) with:
+  - 60 confetti particles with physics
+  - Animated diamond icon with glow rings
+  - Gradient text animation
+  - Feature unlock display
+- `useDiamondSpots` hook for managing slot state
+- Admin panel in Settings to view claimed slots and revoke status
+
+**Files:**
+- `src/hooks/useDiamondSpots.ts` (new)
+- `src/components/FoundingCelebration.tsx` (new)
+- `src/components/AuthPage.tsx` (modified - auto-claim flow)
+- `src/components/LandingPage.tsx` (modified - spots display)
+- `src/components/Settings.tsx` (modified - admin panel)
+
+---
+
+### User Feedback System
+
+Added ability for users to submit feedback and bug reports.
+
+**What was built:**
+- 3-step wizard modal (Type → Priority → Details)
+- `user_feedback` table with RLS policies
+- Admin-only view for managing feedback
+- Filter by type, priority, status
+- Internal notes and resolution tracking
+
+**Files:**
+- `src/components/FeedbackModal.tsx` (new)
+- `src/components/AdminFeedbackView.tsx` (new)
+- `supabase/migrations/003_add_user_feedback.sql` (new)
+
+---
+
+### Diamond Plan Display
+
+Fixed Settings page to properly show Diamond status for founding members.
+
+**What was fixed:**
+- Added `isDiamond` and `hasPremiumAccess` from SubscriptionContext
+- Settings now shows "Diamond Plan" with cyan "Lifetime Access" badge
+- Premium features (PDF export) properly gated by `hasPremiumAccess`
+- Removed "Upgrade to Pro" button for Diamond users
+
+---
+
+### Mobile Optimization
+
+Made the landing page mobile-responsive.
+
+**What was changed:**
+- Responsive padding: `px-4 sm:px-6`, `py-6 sm:py-10`
+- Responsive typography: `text-[28px] sm:text-[34px]`
+- Founding spots pill repositioned: `mt-2 sm:-mt-4`
+- Pricing grid: single column on mobile
+
+---
+
+### Signup Flow Improvement
+
+All CTA buttons now go directly to signup instead of login.
+
+**What was changed:**
+- Added `?mode=signup` URL parameter support to AuthPage
+- Updated all landing page buttons to use `/login?mode=signup`
+- "Sign In" button kept at `/login` for returning users
+
+---
+
+### Open Graph Meta Tags
+
+Added social media preview support.
+
+**What was added:**
+- `og-image.png` in public folder
+- OG meta tags in `index.html`
+- Twitter Card meta tags
+- Updated page title: "Habits - Build habits gently"
+
+---
+
 ## December 22, 2025
 
 ### Security Lockdown (Critical)
@@ -68,38 +160,17 @@ Made the dashboard feel like an actual product instead of a prototype.
 
 ---
 
-### Files Changed
-
-**New files:**
-- `src/components/CompletionDots.tsx`
-- `src/components/GlobalStreak.tsx`
-- `src/utils/motivationalMessages.ts`
-
-**Modified:**
-- `src/components/Dashboard.tsx` - Major updates for new features
-- `src/components/WeekView.tsx` - Added completion dots
-- `src/components/Calendar.tsx` - Added completion dots
-- `src/components/HabitCard.tsx` - Added celebration animation
-- `src/components/AddHabitModal.tsx` - Fixed async/error handling
-- `src/components/LandingPage.tsx` - Added security indicators
-- `src/components/AuthPage.tsx` - Added header/footer navigation
-- `src/contexts/HabitsContext.tsx` - Added helper function, fixed DB column names
-- `src/utils/dateUtils.ts` - Fixed timezone bug, added DRY helpers
-
-**Database migrations applied:**
-- `add_custom_days_column` - Added missing column for custom recurrence
-- `secure_habits_table_rls` - RLS + policies for habits
-- `secure_completions_table_rls` - RLS + policies for completions
-- `secure_profiles_table_rls` - RLS + policies for profiles
-- `fix_function_search_paths` - Security hardening for DB functions
-
----
-
 ## Status
 
-Ready for private beta with 10 friends. Security is solid, core features work, UI feels polished.
+Alpha launch complete. Founding member system live. Security is solid, core features work, UI feels polished.
 
-**Next up (probably):**
-- Actually invite people
-- See what breaks
-- Iterate based on feedback
+**Current state:**
+- 5 founding slots (3 remaining)
+- Admin: jonas@jonasinfocus.com
+- Production: https://habit-psi.vercel.app
+
+**Architecture:**
+- React 19 + TypeScript + Vite 7
+- Supabase (Auth, DB, Storage, Realtime)
+- Stripe (Edge Functions for webhooks)
+- Tailwind CSS 4 + Framer Motion
