@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { Check, Clock } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Check, Clock, LogOut } from 'lucide-react';
 
 interface TrialExpiredModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ const FEATURES = [
 
 export const TrialExpiredModal = ({ isOpen }: TrialExpiredModalProps) => {
   const { openCheckout } = useSubscription();
+  const { signOut } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -213,6 +215,17 @@ export const TrialExpiredModal = ({ isOpen }: TrialExpiredModalProps) => {
               <p className="text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
                 Cancel anytime. Your habits are waiting.
               </p>
+              <motion.button
+                type="button"
+                onClick={signOut}
+                className="flex items-center justify-center gap-2 w-full py-2 mt-2 rounded-xl transition-colors hover:bg-white/5"
+                whileTap={{ scale: 0.98 }}
+              >
+                <LogOut size={14} style={{ color: 'var(--text-muted)' }} />
+                <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  Sign out
+                </span>
+              </motion.button>
             </motion.div>
           </motion.div>
         </>
