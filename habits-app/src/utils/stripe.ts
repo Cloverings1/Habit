@@ -105,6 +105,12 @@ export const createProTrialCheckout = async (): Promise<void> => {
       },
     });
 
+    console.log('Edge Function response:', {
+      error: response.error,
+      data: response.data,
+      status: response.error?.status
+    });
+
     if (response.error) {
       console.error('Function invoke error:', response.error);
       throw new Error(response.error.message || 'Failed to create checkout session');
@@ -117,7 +123,7 @@ export const createProTrialCheckout = async (): Promise<void> => {
       throw new Error('No checkout URL returned from server');
     }
 
-    console.log('Redirecting to Stripe checkout...');
+    console.log('✅ Got Stripe URL, redirecting...', url.substring(0, 50) + '...');
     window.location.href = url;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

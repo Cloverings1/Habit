@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
-import { useSubscription } from '../contexts/SubscriptionContext';
+import { useEntitlement } from '../contexts/EntitlementContext';
 import { generateReportData, generateConsistencyPDF } from '../utils/reportGenerator';
 
 interface ConsistencyReportProps {
@@ -13,7 +13,7 @@ type ReportPeriod = 'weekly' | 'monthly';
 
 export const ConsistencyReport = ({ isOpen, onClose }: ConsistencyReportProps) => {
   const { habits, completedDays } = useHabits();
-  const { isPro } = useSubscription();
+  const { hasAccess } = useEntitlement();
   const [period, setPeriod] = useState<ReportPeriod>('weekly');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -23,7 +23,7 @@ export const ConsistencyReport = ({ isOpen, onClose }: ConsistencyReportProps) =
   }, [habits, completedDays, period, isOpen]);
 
   const handleExport = async () => {
-    if (!reportData || !isPro) return;
+    if (!reportData || !hasAccess) return;
 
     setIsExporting(true);
     try {
@@ -35,7 +35,7 @@ export const ConsistencyReport = ({ isOpen, onClose }: ConsistencyReportProps) =
     }
   };
 
-  if (!isPro) {
+  if (!hasAccess) {
     return null;
   }
 

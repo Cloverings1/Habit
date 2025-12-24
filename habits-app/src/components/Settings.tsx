@@ -44,8 +44,8 @@ export const Settings = () => {
     getDisplayName,
     getAvatarUrl,
   } = useAuth();
-  const { isPro, isDiamond, isTrialing, trialState, status, currentPeriodEnd, cancelAtPeriodEnd, openPortal } = useSubscription();
-  const { hasAccess } = useEntitlement();
+  const { isTrialing, trialState, status, currentPeriodEnd, cancelAtPeriodEnd, openPortal } = useSubscription();
+  const { hasAccess, isFounding, isPro } = useEntitlement();
   const hasPremiumAccess = hasAccess;
   const navigate = useNavigate();
 
@@ -121,7 +121,7 @@ export const Settings = () => {
   };
 
   const handleRevokeFoundingStatus = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to revoke founding status from ${userName}? This will:\n\n• Remove their Diamond membership\n• Free up a founding slot\n• Set them back to Free tier`)) {
+    if (!confirm(`Are you sure you want to revoke founding status from ${userName}? This will:\n\n• Remove their Founding membership\n• Free up a founding slot\n• Set them back to Free tier`)) {
       return;
     }
 
@@ -300,7 +300,7 @@ export const Settings = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {isDiamond ? 'Diamond Plan' : isPro ? 'Pro Plan' : isTrialing ? 'Pro Trial' : 'No Plan'}
+                  {isFounding ? 'Founders Edition' : isPro ? 'Pro Plan' : isTrialing ? 'Pro Trial' : 'No Plan'}
                 </span>
                 {(hasPremiumAccess || isTrialing) && (
                   <span
@@ -334,7 +334,7 @@ export const Settings = () => {
               )}
             </div>
 
-            {isDiamond ? (
+            {isFounding ? (
               <span
                 className="text-[13px] px-3 py-1.5 rounded-full"
                 style={{
@@ -838,7 +838,7 @@ export const Settings = () => {
                                         <div>
                                           <p style={{ color: 'var(--text-muted)' }}>Status</p>
                                           <p className="mt-1" style={{ color: '#22d3ee' }}>
-                                            Diamond Member
+                                            Founding Member
                                           </p>
                                         </div>
                                       </div>

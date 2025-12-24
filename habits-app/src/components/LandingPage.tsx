@@ -10,8 +10,13 @@ export const LandingPage = () => {
   const { spotsRemaining } = useDiamondSpots();
   const [showTrialExpired, setShowTrialExpired] = useState(false);
 
-  // Check for trial_expired or no_access query params
+  // Check for trial_expired, no_access, or canceled query params
   useEffect(() => {
+    // Clear checkout flag if user canceled or was redirected back
+    if (searchParams.get('canceled') === 'true') {
+      sessionStorage.removeItem('checkout_in_progress');
+    }
+
     if (searchParams.get('trial_expired') === 'true' || searchParams.get('no_access') === 'true') {
       setShowTrialExpired(true);
     }

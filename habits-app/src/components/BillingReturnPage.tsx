@@ -8,6 +8,9 @@ export const BillingReturnPage = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
+    // Clear checkout flag - user has returned from Stripe
+    sessionStorage.removeItem('checkout_in_progress');
+
     const sessionId = searchParams.get('session_id');
     const canceled = searchParams.get('canceled');
 

@@ -40,7 +40,8 @@ habits-app/
 │   ├── contexts/
 │   │   ├── AuthContext.tsx        # Auth state, profile updates, avatar upload
 │   │   ├── HabitsContext.tsx      # Habit CRUD, completions, streaks
-│   │   ├── SubscriptionContext.tsx # Subscription status, Stripe integration
+│   │   ├── EntitlementContext.tsx # Current subscription (reads user_entitlements)
+│   │   ├── SubscriptionContext.tsx # Legacy subscription (reads user_profiles)
 │   │   └── ThemeContext.tsx       # Light/dark theme
 │   ├── hooks/
 │   │   └── useDiamondSpots.ts     # Founding member slot management
@@ -66,6 +67,10 @@ habits-app/
 │   │   │   ├── CompletionDots.tsx # Visual completion indicators
 │   │   │   ├── GlobalStreak.tsx   # Streak counter with emoji
 │   │   │   └── Navigation.tsx     # Bottom nav bar
+│   │   ├── Guards/
+│   │   │   └── TrialGuard.tsx     # Protects routes requiring subscription
+│   │   ├── Billing/
+│   │   │   └── BillingReturnPage.tsx  # Stripe checkout return handler
 │   │   └── Admin/
 │   │       └── AdminFeedbackView.tsx  # Admin feedback management
 │   └── utils/
@@ -77,11 +82,12 @@ habits-app/
 │       ├── avatarUtils.ts         # Avatar validation
 │       └── motivationalMessages.ts # Progress-based messages
 ├── supabase/
-│   ├── migrations/                # SQL migrations (3 files)
+│   ├── migrations/                # SQL migrations
 │   ├── functions/                 # Edge Functions (Stripe)
 │   │   ├── stripe-webhook/        # Handle Stripe events
-│   │   ├── create-checkout-session/
-│   │   └── create-portal-session/
+│   │   ├── create-pro-trial-session/   # Pro subscription with 7-day trial
+│   │   ├── create-founding-session/    # Founders Edition one-time payment
+│   │   └── create-portal-session/      # Billing portal access
 │   └── email-templates/           # Custom auth emails
 ├── public/
 │   └── og-image.png               # Social media preview
@@ -93,15 +99,15 @@ habits-app/
 | Tier | Price | Features |
 |------|-------|----------|
 | **Free** | $0 | Up to 3 habits, daily/weekly views, local storage |
-| **Pro** | $9/month | Unlimited habits, cloud sync, PDF reports |
-| **Diamond** | $0 (Lifetime) | All Pro features forever, founding member exclusive |
+| **Pro** | $9/month (7-day free trial) | Unlimited habits, cloud sync, PDF reports |
+| **Founders Edition** | $149 (Lifetime) | All Pro features forever, founding member exclusive |
 
 ### Founding Member System
 
-Limited slots (currently 5) for lifetime Diamond access:
-- Auto-claimed on signup if spots available
+Limited slots (currently 5) for lifetime Founders Edition access:
+- Purchased via one-time Stripe checkout ($149)
 - Epic celebration modal with confetti animation
-- Managed via `founding_slots` table and RPC functions
+- Managed via `founding_slots` table and `user_entitlements`
 - Admin can view/revoke in Settings (jonas@jonasinfocus.com only)
 
 ## Database Schema (Supabase)
@@ -168,6 +174,20 @@ broken_streaks (
   streak_length INT,
   broken_date DATE
 )
+
+-- User entitlements (current subscription system)
+user_entitlements (
+  id UUID PRIMARY KEY REFERENCES auth.users,
+  plan TEXT DEFAULT 'none',        -- 'none' | 'pro' | 'founding'
+  status TEXT DEFAULT 'none',      -- 'none' | 'trialing' | 'active' | 'canceled' | 'past_due'
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  trial_start TIMESTAMPTZ,
+  trial_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN DEFAULT false
+)
 ```
 
 ### RPC Functions
@@ -193,25 +213,30 @@ is_feedback_admin() -> BOOLEAN
 
 ### State Management
 
-Four React Contexts with custom hooks:
+Five React Contexts with custom hooks:
 
 ```typescript
 const { user, signOut, updateDisplayName, uploadAvatar } = useAuth();
 const { habits, addHabit, toggleCompletion, isCompleted } = useHabits();
-const { isPro, isDiamond, hasPremiumAccess, openCheckout } = useSubscription();
+const { isTrialing, trialState, openPortal } = useSubscription();  // Legacy, reads user_profiles
+const { hasAccess, isPro, isFounding, isTrialing } = useEntitlement();  // Current, reads user_entitlements
 const { theme, toggleTheme } = useTheme();
 ```
 
 ### Subscription Checking
 
-```typescript
-// In components
-const { hasPremiumAccess, isDiamond, isPro } = useSubscription();
+**IMPORTANT**: Use `useEntitlement()` for feature gating, NOT `useSubscription()`.
 
-// hasPremiumAccess = isPro || isDiamond (use for feature gating)
-if (!hasPremiumAccess) {
+```typescript
+// In components - CORRECT
+const { hasAccess, isFounding, isPro } = useEntitlement();
+
+// hasAccess = isPro || isFounding || isTrialing (use for feature gating)
+if (!hasAccess) {
   setShowPaywall(true);
 }
+
+// AVOID using useSubscription() for access checks - it reads legacy table
 ```
 
 ### Habit Limit (Free Tier)
@@ -229,17 +254,25 @@ await toggleCompletion(habitId, date);
 // If server fails, UI reverts automatically
 ```
 
-### Founding Slot Claim Flow
+### Trial Checkout Flow
 
 ```typescript
-// In AuthPage.tsx after signup
-const { spotsRemaining } = useDiamondSpots();
-if (spotsRemaining > 0) {
-  const result = await claimFoundingSlot(userId);
-  if (result.success) {
-    setShowFoundingCelebration(true); // Epic confetti modal
-  }
-}
+// In AuthPage.tsx after signup with ?plan=pro
+sessionStorage.setItem('checkout_in_progress', 'true');  // Prevents TrialGuard redirect
+await createProTrialCheckout();  // Redirects to Stripe
+
+// User completes checkout → returns to /billing/return
+// BillingReturnPage clears flag and shows success
+sessionStorage.removeItem('checkout_in_progress');
+```
+
+### Founders Edition Purchase Flow
+
+```typescript
+// From pricing page or signup with ?plan=founding
+await createFoundingCheckout();  // Redirects to Stripe ($149 one-time)
+// On success, user_entitlements.plan = 'founding', status = 'active'
+// FoundingCelebration modal shows epic confetti
 ```
 
 ## Environment Variables
@@ -293,17 +326,28 @@ Shows when free user hits limits:
 ### Edge Functions
 
 ```typescript
-// create-checkout-session - Creates Stripe checkout
-// create-portal-session - Opens billing portal
+// create-pro-trial-session - Creates Pro subscription checkout with 7-day trial
+// create-founding-session - Creates Founders Edition one-time payment checkout ($149)
+// create-portal-session - Opens billing portal for subscription management
 // stripe-webhook - Handles subscription events:
+//   - checkout.session.completed
 //   - customer.subscription.created/updated/deleted
-//   - invoice.payment_succeeded
+//   - invoice.payment_succeeded/failed
+```
+
+### Supabase Secrets (Edge Functions)
+
+```bash
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PRICE_ID_PRO_MONTHLY=price_...
+STRIPE_PRICE_ID_FOUNDING_ONE_TIME=price_...
+APP_URL=https://habit-psi.vercel.app
 ```
 
 ### Webhook Flow
 1. Stripe sends event to Edge Function
-2. Function updates `user_profiles.subscription_status`
-3. SubscriptionContext receives realtime update
+2. Function updates `user_entitlements` table
+3. EntitlementContext receives realtime update
 4. UI updates automatically
 
 ---
@@ -335,10 +379,10 @@ Shows when free user hits limits:
 --text-muted: #6F6F6F          /* Metadata */
 ```
 
-### Diamond/Founding Accent
+### Founding Member Accent
 
 ```css
-/* Cyan gradient for founding member elements */
+/* Cyan gradient for Founders Edition elements */
 background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
 border: 1px solid rgba(6, 182, 212, 0.25);
 color: #22d3ee;
@@ -412,7 +456,7 @@ When building new components:
 - [ ] Has proper loading/error states
 - [ ] Uses `AnimatePresence` for conditional content
 - [ ] Respects 4px spacing increments
-- [ ] Handles `hasPremiumAccess` for paywalled features
+- [ ] Handles `hasAccess` from `useEntitlement()` for paywalled features
 
 ## Quick Reference
 
@@ -424,6 +468,6 @@ When building new components:
 | Text input | `.liquid-glass-input` |
 | Modal wrapper | `.liquid-glass-modal` |
 | Accent color | `var(--accent)` / `#E85D4F` |
-| Diamond accent | `#22d3ee` / `#06b6d4` |
+| Founding accent | `#22d3ee` / `#06b6d4` |
 | Animation ease | `[0.32, 0.72, 0, 1]` |
 | Tap feedback | `whileTap={{ scale: 0.95 }}` |

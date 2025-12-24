@@ -42,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
+    // Clear any checkout flags on logout
+    sessionStorage.removeItem('checkout_in_progress');
     await supabase.auth.signOut();
   };
 

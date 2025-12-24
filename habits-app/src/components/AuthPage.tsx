@@ -24,15 +24,11 @@ export const AuthPage = () => {
   const [showFoundingCelebration, setShowFoundingCelebration] = useState(false);
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
-  const checkoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      if (checkoutTimeoutRef.current) {
-        clearTimeout(checkoutTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -77,14 +73,17 @@ export const AuthPage = () => {
     setLoadingProgress(0);
     setError(null);
 
-    // Animate the loading bar over 1.5 seconds
+    // Get the plan parameter from URL upfront
+    const planParam = searchParams.get('plan');
+    const requiresCheckout = planParam === 'pro' || planParam === 'founding';
+
+    // Animate the loading bar
     const startTime = Date.now();
-    const duration = 1500;
+    const duration = requiresCheckout ? 800 : 1500; // Faster animation for checkout flows
 
     const animateProgress = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Easing function for smooth deceleration
       const easedProgress = 1 - Math.pow(1 - progress, 3);
       setLoadingProgress(easedProgress * 100);
 
@@ -96,7 +95,9 @@ export const AuthPage = () => {
     requestAnimationFrame(animateProgress);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Step 1: Create the account
+      console.log('📝 Creating account...');
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -107,92 +108,88 @@ export const AuthPage = () => {
           },
         },
       });
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
-      // Founding slots disabled for now - all users must go through paid checkout
-      // Will be re-enabled in future
-      // let claimedFoundingSpot = false;
-      // if (spotsRemaining > 0 && signUpData.user?.id) {
-      //   try {
-      //     const claimResult = await claimFoundingSlot(signUpData.user.id);
-      //     if (claimResult.success) {
-      //       claimedFoundingSpot = true;
-      //       setIsFoundingMember(true);
-      //     }
-      //   } catch (claimErr) {
-      //     // Silently fail - user still gets regular account
-      //     console.log('Could not claim founding spot:', claimErr);
-      //   }
-      // }
-      let claimedFoundingSpot = false;
+      console.log('✅ Account created. planParam:', planParam);
 
-      // Get the plan parameter from URL
-      const planParam = searchParams.get('plan');
+      // Founding slots disabled for now
+      const claimedFoundingSpot = false;
 
-      // Wait for the loading animation to complete, then show appropriate celebration
-      checkoutTimeoutRef.current = setTimeout(async () => {
-        // Guard against unmounted component
-        if (!isMountedRef.current) return;
+      // Step 2: Handle checkout IMMEDIATELY (before auth state change redirects us)
+      // This is critical - we must redirect to Stripe BEFORE React Router redirects to /app
+      if (requiresCheckout && !claimedFoundingSpot) {
+        console.log('💳 Initiating checkout immediately...');
 
-        if (claimedFoundingSpot) {
-          setShowSuccess(false); // Hide the loading modal
-          setShowFoundingCelebration(true); // Show epic founding celebration
-          // After celebration, redirect to app (founding members don't need to pay)
-        } else if (planParam === 'pro') {
-          // User selected Pro trial - initiate checkout
-          try {
-            // Ensure session is available before attempting checkout
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (!sessionData?.session) {
-              // Session not available, wait a bit and retry
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const { data: retrySession } = await supabase.auth.getSession();
-              if (!retrySession?.session) {
-                throw new Error('Session not available. Please refresh and try again.');
-              }
-            }
-            await createProTrialCheckout();
-          } catch (checkoutErr) {
-            console.error('Failed to initiate Pro checkout:', checkoutErr);
-            // Keep the modal open and show error message - don't close setShowSuccess
-            if (isMountedRef.current) {
-              setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
-            }
+        // Set flag to prevent TrialGuard from interfering during checkout redirect
+        sessionStorage.setItem('checkout_in_progress', 'true');
+
+        // Wait for session to be available (with retries)
+        let session = null;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session) {
+            session = sessionData.session;
+            console.log('🔑 Session available on attempt', attempt + 1);
+            break;
           }
-        } else if (planParam === 'diamond' || planParam === 'founding') {
-          // User selected Founding - initiate checkout
-          try {
-            // Ensure session is available before attempting checkout
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (!sessionData?.session) {
-              // Session not available, wait a bit and retry
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const { data: retrySession } = await supabase.auth.getSession();
-              if (!retrySession?.session) {
-                throw new Error('Session not available. Please refresh and try again.');
-              }
-            }
-            await createFoundingCheckout();
-          } catch (checkoutErr) {
-            console.error('Failed to initiate Founding checkout:', checkoutErr);
-            // Keep the modal open and show error message - don't close setShowSuccess
-            if (isMountedRef.current) {
-              setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
-            }
-          }
-        } else {
-          // No plan specified or free plan - show regular celebration
-          if (isMountedRef.current) {
-            setShowSuccess(false);
-            setShowCelebration(true);
-          }
+          console.log('⏳ Session not ready, attempt', attempt + 1);
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
-      }, 1600);
+
+        if (!session) {
+          throw new Error('Session not available. Please refresh and try again.');
+        }
+
+        // Initiate checkout - this does a full page redirect to Stripe
+        // which prevents React Router from redirecting to /app first
+        try {
+          if (planParam === 'pro') {
+            console.log('🚀 Redirecting to Pro trial checkout...');
+            await createProTrialCheckout();
+          } else if (planParam === 'founding') {
+            console.log('🚀 Redirecting to Founding checkout...');
+            await createFoundingCheckout();
+          }
+          // Note: createProTrialCheckout/createFoundingCheckout redirect the page,
+          // so code below this point won't execute for checkout flows
+        } catch (checkoutError) {
+          // Clear the checkout flag if checkout fails - otherwise user gets stuck
+          sessionStorage.removeItem('checkout_in_progress');
+          console.error('❌ Checkout initiation failed:', checkoutError);
+          throw checkoutError; // Re-throw to be caught by outer catch
+        }
+        return;
+      }
+
+      // Step 3: For non-checkout flows (founding member claim or free signup)
+      if (claimedFoundingSpot) {
+        // Wait for animation to finish before showing celebration
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
+        if (isMountedRef.current) {
+          setShowSuccess(false);
+          setShowFoundingCelebration(true);
+        }
+      } else {
+        // No plan specified - show regular celebration (email verification)
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
+        if (isMountedRef.current) {
+          setShowSuccess(false);
+          setShowCelebration(true);
+        }
+      }
     } catch (err: unknown) {
+      console.error('❌ Signup/checkout error:', err);
       const message = err instanceof Error ? err.message : 'An error occurred';
+      console.log('📋 Error message:', message);
+
+      // Always close the loading modal on error
       setShowSuccess(false);
-      if (message.includes('already registered')) {
-        setError('An account with this email already exists');
+
+      // Show appropriate error message
+      if (message.includes('already registered') || message.includes('already been registered')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (message.includes('Checkout failed') || message.includes('Session not available')) {
+        setError(message);
       } else {
         setError('Something went wrong. Please try again.');
       }

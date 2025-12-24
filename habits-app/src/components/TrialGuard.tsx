@@ -20,6 +20,11 @@ export const TrialGuard = ({ children }: TrialGuardProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Skip if checkout is in progress (prevents race condition with Stripe redirect)
+    if (sessionStorage.getItem('checkout_in_progress') === 'true') {
+      return;
+    }
+
     // Wait for auth and subscription data to load
     if (loading || !user) return;
 
@@ -42,6 +47,11 @@ export const TrialGuard = ({ children }: TrialGuardProps) => {
 
   // Show nothing while checking (prevents flash of content)
   if (loading) return null;
+
+  // Don't block if checkout is in progress (user is being redirected to Stripe)
+  if (sessionStorage.getItem('checkout_in_progress') === 'true') {
+    return <>{children}</>;
+  }
 
   // Show nothing if no access (will redirect)
   if (!hasAccess && !isFounding) return null;
