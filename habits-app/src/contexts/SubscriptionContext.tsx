@@ -38,27 +38,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // Profile might not exist yet for new users
-        if (error.code === 'PGRST116') {
-          // No rows returned - user has no profile yet, use defaults
-          setProfile({
-            id: user.id,
-            stripe_customer_id: null,
-            subscription_status: 'free',
-            subscription_id: null,
-            price_id: null,
-            current_period_end: null,
-            cancel_at_period_end: false,
-            trial_start: null,
-            trial_end: null,
-            is_trial_user: false,
-          });
-        } else {
-          console.error('Error fetching user profile:', error);
-        }
+        console.error('Error fetching user profile:', error);
       } else if (data) {
         setProfile({
           id: data.id,
@@ -71,6 +54,20 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           trial_start: data.trial_start || null,
           trial_end: data.trial_end || null,
           is_trial_user: data.is_trial_user || false,
+        });
+      } else {
+        // Profile might not exist yet for new users - use defaults
+        setProfile({
+          id: user.id,
+          stripe_customer_id: null,
+          subscription_status: 'free',
+          subscription_id: null,
+          price_id: null,
+          current_period_end: null,
+          cancel_at_period_end: false,
+          trial_start: null,
+          trial_end: null,
+          is_trial_user: false,
         });
       }
     } catch (err) {
