@@ -24,7 +24,7 @@ import { MessageCircle } from 'lucide-react';
 import type { ViewType } from './types';
 
 // Set to true to enable maintenance mode
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 const VIEW_LABELS: Record<ViewType, string> = {
   home: 'Dashboard',
