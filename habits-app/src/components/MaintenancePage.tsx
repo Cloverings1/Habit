@@ -173,20 +173,34 @@ export const MaintenancePage = () => {
           Jonas is with family...back soon
         </motion.p>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1.3, ease: [0.25, 0.1, 0.25, 1] }}
-          className="text-[12px] uppercase tracking-widest mt-4 font-medium"
-          style={{
-            background: 'repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #ffffff 10px, #ffffff 20px)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
+          className="mt-6 flex items-center justify-center gap-1"
         >
-          Maintenance Mode
-        </motion.p>
+          {'MAINTENANCE MODE'.split('').map((letter, i) => (
+            <motion.span
+              key={i}
+              className="text-[11px] font-semibold"
+              style={{
+                color: letter === ' ' ? 'transparent' : i % 2 === 0 ? '#ef4444' : '#ffffff',
+                textShadow: i % 2 === 0 ? '0 0 8px rgba(239, 68, 68, 0.5)' : '0 0 8px rgba(255, 255, 255, 0.3)',
+              }}
+              animate={{
+                opacity: [0.7, 1, 0.7],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: i * 0.1,
+                ease: 'easeInOut',
+              }}
+            >
+              {letter === ' ' ? '\u00A0\u00A0' : letter}
+            </motion.span>
+          ))}
+        </motion.div>
 
         {/* Gift icon */}
         <motion.div
