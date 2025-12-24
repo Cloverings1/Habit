@@ -126,22 +126,42 @@ export const AuthPage = () => {
         } else if (planParam === 'pro') {
           // User selected Pro trial - initiate checkout
           try {
+            // Ensure session is available before attempting checkout
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData?.session) {
+              // Session not available, wait a bit and retry
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const { data: retrySession } = await supabase.auth.getSession();
+              if (!retrySession?.session) {
+                throw new Error('Session not available. Please refresh and try again.');
+              }
+            }
             await createProTrialCheckout();
           } catch (checkoutErr) {
             console.error('Failed to initiate Pro checkout:', checkoutErr);
-            // Fallback: show regular celebration
             setShowSuccess(false);
-            setShowCelebration(true);
+            // Show error message to user
+            setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
           }
         } else if (planParam === 'diamond' || planParam === 'founding') {
           // User selected Founding - initiate checkout
           try {
+            // Ensure session is available before attempting checkout
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData?.session) {
+              // Session not available, wait a bit and retry
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const { data: retrySession } = await supabase.auth.getSession();
+              if (!retrySession?.session) {
+                throw new Error('Session not available. Please refresh and try again.');
+              }
+            }
             await createFoundingCheckout();
           } catch (checkoutErr) {
             console.error('Failed to initiate Founding checkout:', checkoutErr);
-            // Fallback: show regular celebration
             setShowSuccess(false);
-            setShowCelebration(true);
+            // Show error message to user
+            setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
           }
         } else {
           // No plan specified or free plan - show regular celebration

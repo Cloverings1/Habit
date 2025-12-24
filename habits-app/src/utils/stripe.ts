@@ -84,29 +84,45 @@ export const PRICE_IDS = {
  * Redirects to Stripe-hosted checkout page
  */
 export const createProTrialCheckout = async (): Promise<void> => {
-  const { data: sessionData, error } = await supabase.auth.getSession();
+  try {
+    const { data: sessionData, error } = await supabase.auth.getSession();
 
-  if (error || !sessionData?.session?.access_token) {
-    throw new Error('You must be logged in to subscribe');
-  }
+    if (error) {
+      console.error('Session fetch error:', error);
+      throw new Error('Failed to get session');
+    }
 
-  const response = await supabase.functions.invoke('create-pro-trial-session', {
-    body: {},
-    headers: {
-      Authorization: `Bearer ${sessionData.session.access_token}`,
-    },
-  });
+    if (!sessionData?.session?.access_token) {
+      console.error('No session or access token available');
+      throw new Error('You must be logged in to subscribe');
+    }
 
-  if (response.error) {
-    throw new Error(response.error.message || 'Failed to create checkout session');
-  }
+    console.log('Invoking create-pro-trial-session function...');
+    const response = await supabase.functions.invoke('create-pro-trial-session', {
+      body: {},
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
+    });
 
-  const { url } = response.data;
+    if (response.error) {
+      console.error('Function invoke error:', response.error);
+      throw new Error(response.error.message || 'Failed to create checkout session');
+    }
 
-  if (url) {
+    const { url } = response.data;
+
+    if (!url) {
+      console.error('No URL in response:', response.data);
+      throw new Error('No checkout URL returned from server');
+    }
+
+    console.log('Redirecting to Stripe checkout...');
     window.location.href = url;
-  } else {
-    throw new Error('No checkout URL returned');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('createProTrialCheckout error:', message);
+    throw err;
   }
 };
 
@@ -115,28 +131,44 @@ export const createProTrialCheckout = async (): Promise<void> => {
  * Redirects to Stripe-hosted checkout page
  */
 export const createFoundingCheckout = async (): Promise<void> => {
-  const { data: sessionData, error } = await supabase.auth.getSession();
+  try {
+    const { data: sessionData, error } = await supabase.auth.getSession();
 
-  if (error || !sessionData?.session?.access_token) {
-    throw new Error('You must be logged in to purchase founding access');
-  }
+    if (error) {
+      console.error('Session fetch error:', error);
+      throw new Error('Failed to get session');
+    }
 
-  const response = await supabase.functions.invoke('create-founding-session', {
-    body: {},
-    headers: {
-      Authorization: `Bearer ${sessionData.session.access_token}`,
-    },
-  });
+    if (!sessionData?.session?.access_token) {
+      console.error('No session or access token available');
+      throw new Error('You must be logged in to purchase founding access');
+    }
 
-  if (response.error) {
-    throw new Error(response.error.message || 'Failed to create checkout session');
-  }
+    console.log('Invoking create-founding-session function...');
+    const response = await supabase.functions.invoke('create-founding-session', {
+      body: {},
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
+    });
 
-  const { url } = response.data;
+    if (response.error) {
+      console.error('Function invoke error:', response.error);
+      throw new Error(response.error.message || 'Failed to create checkout session');
+    }
 
-  if (url) {
+    const { url } = response.data;
+
+    if (!url) {
+      console.error('No URL in response:', response.data);
+      throw new Error('No checkout URL returned from server');
+    }
+
+    console.log('Redirecting to Stripe checkout...');
     window.location.href = url;
-  } else {
-    throw new Error('No checkout URL returned');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('createFoundingCheckout error:', message);
+    throw err;
   }
 };
