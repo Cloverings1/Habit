@@ -12,7 +12,10 @@ const corsHeaders = {
 export default async (req: Request) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -21,7 +24,10 @@ export default async (req: Request) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: corsHeaders }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -46,7 +52,7 @@ export default async (req: Request) => {
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: corsHeaders,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -60,7 +66,10 @@ export default async (req: Request) => {
     if (!availableSpots || availableSpots.length === 0) {
       return new Response(
         JSON.stringify({ error: "No founding spots available" }),
-        { status: 400, headers: corsHeaders }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 

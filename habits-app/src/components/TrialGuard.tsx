@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,7 +18,6 @@ export const TrialGuard = ({ children }: TrialGuardProps) => {
   const { user } = useAuth();
   const { hasActiveAccess, isTrialing, trialState, isDiamond, loading } = useSubscription();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Wait for auth and subscription data to load
@@ -39,7 +38,7 @@ export const TrialGuard = ({ children }: TrialGuardProps) => {
       navigate('/?no_access=true', { replace: true });
       return;
     }
-  }, [hasActiveAccess, isTrialing, trialState, isDiamond, loading, user, navigate, location.pathname]);
+  }, [hasActiveAccess, isTrialing, trialState, isDiamond, loading, user, navigate]);
 
   // Show nothing while checking (prevents flash of content)
   if (loading) return null;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
@@ -23,6 +23,18 @@ export const AuthPage = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showFoundingCelebration, setShowFoundingCelebration] = useState(false);
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
+  const checkoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (checkoutTimeoutRef.current) {
+        clearTimeout(checkoutTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Founding slots disabled - kept hook for future re-enablement
   useDiamondSpots();
@@ -118,7 +130,10 @@ export const AuthPage = () => {
       const planParam = searchParams.get('plan');
 
       // Wait for the loading animation to complete, then show appropriate celebration
-      setTimeout(async () => {
+      checkoutTimeoutRef.current = setTimeout(async () => {
+        // Guard against unmounted component
+        if (!isMountedRef.current) return;
+
         if (claimedFoundingSpot) {
           setShowSuccess(false); // Hide the loading modal
           setShowFoundingCelebration(true); // Show epic founding celebration
@@ -139,9 +154,10 @@ export const AuthPage = () => {
             await createProTrialCheckout();
           } catch (checkoutErr) {
             console.error('Failed to initiate Pro checkout:', checkoutErr);
-            setShowSuccess(false);
-            // Show error message to user
-            setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
+            // Keep the modal open and show error message - don't close setShowSuccess
+            if (isMountedRef.current) {
+              setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
+            }
           }
         } else if (planParam === 'diamond' || planParam === 'founding') {
           // User selected Founding - initiate checkout
@@ -159,14 +175,17 @@ export const AuthPage = () => {
             await createFoundingCheckout();
           } catch (checkoutErr) {
             console.error('Failed to initiate Founding checkout:', checkoutErr);
-            setShowSuccess(false);
-            // Show error message to user
-            setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
+            // Keep the modal open and show error message - don't close setShowSuccess
+            if (isMountedRef.current) {
+              setError(`Checkout failed: ${checkoutErr instanceof Error ? checkoutErr.message : 'Unknown error'}`);
+            }
           }
         } else {
           // No plan specified or free plan - show regular celebration
-          setShowSuccess(false);
-          setShowCelebration(true);
+          if (isMountedRef.current) {
+            setShowSuccess(false);
+            setShowCelebration(true);
+          }
         }
       }, 1600);
     } catch (err: unknown) {
