@@ -35,10 +35,10 @@ export const BillingReturnPage = () => {
     // In a real app, you might validate the session server-side here
     setStatus('success');
 
-    // Redirect to app after 2 seconds
+    // Redirect to app after 4 seconds (gives webhook time to update entitlements)
     setTimeout(() => {
       navigate('/app');
-    }, 2000);
+    }, 4000);
   }, [searchParams, navigate]);
 
   return (
