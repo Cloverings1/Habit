@@ -174,32 +174,21 @@ export const MaintenancePage = () => {
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.3, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mt-6 flex items-center justify-center gap-1"
+          className="mt-8 px-4 py-2 rounded-full"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
         >
-          {'MAINTENANCE MODE'.split('').map((letter, i) => (
-            <motion.span
-              key={i}
-              className="text-[11px] font-semibold"
-              style={{
-                color: letter === ' ' ? 'transparent' : i % 2 === 0 ? '#ef4444' : '#ffffff',
-                textShadow: i % 2 === 0 ? '0 0 8px rgba(239, 68, 68, 0.5)' : '0 0 8px rgba(255, 255, 255, 0.3)',
-              }}
-              animate={{
-                opacity: [0.7, 1, 0.7],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: i * 0.1,
-                ease: 'easeInOut',
-              }}
-            >
-              {letter === ' ' ? '\u00A0\u00A0' : letter}
-            </motion.span>
-          ))}
+          <p className="text-[11px] tracking-wide" style={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+            Planned maintenance{' '}
+            <span style={{ color: 'rgba(239, 68, 68, 0.7)' }}>Dec 24</span>
+            {' – '}
+            <span style={{ color: 'rgba(34, 197, 94, 0.7)' }}>Dec 25</span>
+          </p>
         </motion.div>
 
         {/* Gift icon */}
