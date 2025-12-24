@@ -307,7 +307,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown' }: Feed
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="Brief summary of your request"
-                          className="w-full px-4 py-4 rounded-xl text-[15px] outline-none transition-all focus:ring-2 focus:ring-white/10"
+                          className="w-full px-5 py-4 rounded-xl text-[15px] outline-none transition-all focus:ring-2 focus:ring-white/10"
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -334,7 +334,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown' }: Feed
                               : "Share your thoughts and suggestions..."
                           }
                           rows={5}
-                          className="w-full px-4 py-4 rounded-xl text-[15px] resize-none outline-none transition-all focus:ring-2 focus:ring-white/10"
+                          className="w-full px-5 py-4 rounded-xl text-[15px] resize-none outline-none transition-all focus:ring-2 focus:ring-white/10"
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
