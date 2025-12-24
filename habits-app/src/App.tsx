@@ -158,7 +158,12 @@ function App() {
               />
               <Route
                 path="/login"
-                element={user ? <Navigate to="/app" replace /> : <AuthPage />}
+                element={
+                  // Don't redirect if checkout is in progress - let AuthPage complete the Stripe redirect
+                  user && sessionStorage.getItem('checkout_in_progress') !== 'true'
+                    ? <Navigate to="/app" replace />
+                    : <AuthPage />
+                }
               />
               <Route path="/billing/return" element={<BillingReturnPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
