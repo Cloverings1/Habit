@@ -6,34 +6,34 @@ import { useNavigate } from 'react-router-dom';
 interface ServiceData {
   name: string;
   uptime: number;
-  history: number[]; // 7 days, index 0 = oldest
+  history: number[]; // 60 days, index 0 = oldest
 }
 
 const services: ServiceData[] = [
   {
     name: 'App',
     uptime: 99.8,
-    history: [0,0,0,0,0,0,0], // All green
+    history: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   },
   {
     name: 'API',
     uptime: 98.9,
-    history: [0,0,1,0,0,0,0], // Yellow on day 3
+    history: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   },
   {
     name: 'Database',
     uptime: 99.9,
-    history: [0,0,0,0,0,0,0], // All green
+    history: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   },
   {
     name: 'Authentication',
     uptime: 99.5,
-    history: [0,0,0,0,1,0,0], // Yellow on day 5
+    history: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   },
   {
     name: 'Sync',
     uptime: 99.2,
-    history: [0,1,0,0,0,0,0], // Yellow on day 2
+    history: [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
   },
 ];
 
@@ -61,7 +61,7 @@ const getCurrentStatus = (): { allOperational: boolean; worstStatus: number } =>
 
 const UptimeBar = ({ history }: { history: number[] }) => {
   return (
-    <div className="flex gap-[3px] flex-1">
+    <div className="flex gap-[2px]">
       {history.map((status, index) => (
         <motion.div
           key={index}
@@ -69,10 +69,10 @@ const UptimeBar = ({ history }: { history: number[] }) => {
           animate={{ opacity: 1, scaleY: 1 }}
           transition={{
             duration: 0.3,
-            delay: index * 0.05,
+            delay: index * 0.008,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="flex-1 h-[24px] rounded-[3px] origin-bottom"
+          className="w-[8px] h-[24px] rounded-[2px] origin-bottom"
           style={{ backgroundColor: STATUS_COLORS[status as keyof typeof STATUS_COLORS] }}
           title={`Day ${index + 1}: ${STATUS_LABELS[status as keyof typeof STATUS_LABELS]}`}
         />
@@ -240,7 +240,7 @@ export const StatusPage = () => {
               System status
             </h2>
             <span className="text-[12px] text-[#6F6F6F]">
-              Last 7 days
+              Last 60 days
             </span>
           </div>
 
@@ -280,7 +280,7 @@ export const StatusPage = () => {
           transition={{ delay: 0.7 }}
           className="text-[13px] text-[#4F4F4F] text-center mt-16 italic"
         >
-          Uptime calculated over the last 7 days.
+          Uptime calculated over the last 60 days.
         </motion.p>
       </main>
     </div>
