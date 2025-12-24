@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useEntitlement } from '../contexts/EntitlementContext';
 import { storage } from '../utils/storage';
 import { useNavigate } from 'react-router-dom';
 import { PaywallModal } from './PaywallModal';
@@ -44,7 +45,8 @@ export const Settings = () => {
     getAvatarUrl,
   } = useAuth();
   const { isPro, isDiamond, isTrialing, trialState, status, currentPeriodEnd, cancelAtPeriodEnd, openPortal } = useSubscription();
-  const hasPremiumAccess = isPro || isDiamond || (isTrialing && !trialState?.isExpired);
+  const { hasAccess } = useEntitlement();
+  const hasPremiumAccess = hasAccess;
   const navigate = useNavigate();
 
   // Existing state
