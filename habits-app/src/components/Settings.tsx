@@ -300,33 +300,33 @@ export const Settings = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {isFounding ? 'Founders Edition' : isPro ? 'Pro Plan' : isTrialing ? 'Pro Trial' : 'No Plan'}
+                  {isFounding ? 'Founders Edition' : isPro || isTrialing ? 'Pro Plan' : 'No Plan'}
                 </span>
                 {(hasPremiumAccess || isTrialing) && (
                   <span
                     className="text-[11px] px-2 py-0.5 rounded-full"
                     style={{
                       backgroundColor: isTrialing
-                        ? 'rgba(6, 182, 212, 0.2)'
+                        ? 'rgba(34, 197, 94, 0.15)'
                         : cancelAtPeriodEnd
                           ? 'rgba(251, 191, 36, 0.2)'
                           : 'rgba(34, 197, 94, 0.2)',
-                      color: isTrialing ? '#22d3ee' : cancelAtPeriodEnd ? '#fbbf24' : '#22c55e',
+                      color: isTrialing ? '#22c55e' : cancelAtPeriodEnd ? '#fbbf24' : '#22c55e',
                     }}
                   >
-                    {isTrialing ? 'Trial' : getSubscriptionStatusLabel()}
+                    {isTrialing ? 'Free Trial' : getSubscriptionStatusLabel()}
+                  </span>
+                )}
+                {isTrialing && trialState && (
+                  <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                    {trialState.daysRemaining === 0
+                      ? 'ends today'
+                      : trialState.daysRemaining === 1
+                        ? '1 day left'
+                        : `${trialState.daysRemaining} days left`}
                   </span>
                 )}
               </div>
-              {isTrialing && trialState && (
-                <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {trialState.daysRemaining === 0
-                    ? 'Trial ends today'
-                    : trialState.daysRemaining === 1
-                      ? '1 day left in trial'
-                      : `${trialState.daysRemaining} days left in trial`}
-                </p>
-              )}
               {isPro && currentPeriodEnd && (
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>
                   {cancelAtPeriodEnd ? 'Ends' : 'Renews'}: {formatSubscriptionDate(currentPeriodEnd)}
