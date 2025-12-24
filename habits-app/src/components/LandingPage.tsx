@@ -20,23 +20,24 @@ export const LandingPage = () => {
   const pricingPlans = [
     {
       name: 'Pro',
+      microtext: 'Most people start here',
       price: '$9',
       period: '/month',
-      description: 'For building lasting habits.',
-      trialBadge: '7-day free trial',
+      description: 'For building habits that actually stick.',
+      trialCopy: '7-day free trial. Cancel anytime. No reminders needed. You won\'t be charged until the trial ends.',
       features: [
         'Unlimited habits',
         'Progress over time',
         'Sync across devices',
-        'Private and secure'
+        'Private by default'
       ],
       buttonText: 'Start free trial',
       tier: 'pro' as const
     },
     {
       name: 'Founding',
+      microtext: 'Early supporter access',
       price: '$0',
-      originalPrice: '$249',
       period: '/lifetime',
       description: 'Help shape what comes next.',
       features: [
@@ -72,62 +73,6 @@ export const LandingPage = () => {
           </button>
         </div>
       </nav>
-
-      {/* Founding spots pill - centered with glow */}
-      {!spotsLoading && !spotsError && spotsRemaining > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center mt-2 sm:-mt-4 mb-4 sm:mb-8"
-        >
-          <motion.button
-            onClick={() => navigate('/login?mode=signup')}
-            className="group relative px-4 py-2 rounded-full text-[13px] font-medium transition-all"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {/* Glow effect */}
-            <div
-              className="absolute inset-0 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)' }}
-            />
-            {/* Pill background */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15))',
-                border: '1px solid rgba(6, 182, 212, 0.25)',
-              }}
-            />
-            {/* Content */}
-            <span className="relative flex items-center gap-2">
-              <span
-                className="flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold"
-                style={{ background: 'rgba(6, 182, 212, 0.3)', color: '#22d3ee' }}
-              >
-                {spotsRemaining}
-              </span>
-              <span style={{ color: '#A0A0A0' }}>
-                founding spot{spotsRemaining === 1 ? '' : 's'} left
-              </span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#06b6d4"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="group-hover:translate-x-0.5 transition-transform"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </span>
-          </motion.button>
-        </motion.div>
-      )}
 
       {/* Hero Section - Emotional Safety */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-12 sm:pt-24 pb-12 sm:pb-20 text-center sm:text-left">
@@ -238,11 +183,12 @@ export const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Section - Hormozi Principles */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-16 sm:py-32">
-        <div className="mb-10 sm:mb-20 text-center sm:text-left">
-          <p className="text-metadata mb-4">Pricing</p>
-          <h2 className="text-section-header">Choose what feels right.</h2>
+        <div className="mb-10 sm:mb-16 text-center sm:text-left">
+          <h2 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-[#F5F5F5]">
+            Choose what feels right.
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-[800px]">
@@ -250,7 +196,7 @@ export const LandingPage = () => {
             const isFounding = plan.tier === 'diamond';
             const isPro = plan.tier === 'pro';
             const foundingAvailable = isFounding && spotsRemaining > 0;
-            const hasTrialBadge = 'trialBadge' in plan && plan.trialBadge;
+            const hasTrialCopy = 'trialCopy' in plan && plan.trialCopy;
 
             return (
               <motion.div
@@ -259,107 +205,58 @@ export const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="group relative"
+                className="relative"
               >
-                {/* Founding tier subtle glow - much softer */}
-                {isFounding && foundingAvailable && (
-                  <div
-                    className="absolute -inset-[1px] rounded-[32px] opacity-30 blur-md transition-opacity duration-300 group-hover:opacity-40"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.4) 0%, rgba(8, 145, 178, 0.2) 100%)',
-                    }}
-                  />
-                )}
-
                 <div
-                  className="relative p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] transition-transform duration-300 hover:translate-y-[-4px] h-full flex flex-col"
+                  className="relative p-6 sm:p-8 rounded-[24px] sm:rounded-[28px] h-full flex flex-col"
                   style={{
-                    background: isFounding
-                      ? 'linear-gradient(180deg, #141414 0%, #111518 100%)'
-                      : isPro
-                        ? 'linear-gradient(180deg, #161616 0%, #141414 100%)'
-                        : '#141414',
-                    border: isFounding && foundingAvailable
-                      ? '1px solid rgba(6, 182, 212, 0.15)'
-                      : isPro
-                        ? '1px solid rgba(232, 93, 79, 0.12)'
-                        : '1px solid rgba(255, 255, 255, 0.04)',
+                    background: '#141414',
+                    border: isPro
+                      ? '1px solid rgba(255, 255, 255, 0.08)'
+                      : '1px solid rgba(255, 255, 255, 0.04)',
                   }}
                 >
-                  <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3
-                          className="text-[12px] font-medium tracking-[0.08em] uppercase"
-                          style={{ color: isFounding && foundingAvailable ? 'rgba(6, 182, 212, 0.8)' : isPro ? 'var(--accent)' : '#6F6F6F' }}
-                        >
-                          {plan.name}
-                        </h3>
-                        {hasTrialBadge && (
-                          <span
-                            className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                            style={{
-                              background: 'rgba(232, 93, 79, 0.15)',
-                              color: 'var(--accent)',
-                              border: '1px solid rgba(232, 93, 79, 0.2)',
-                            }}
-                          >
-                            {plan.trialBadge}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        {/* Original price - slashed */}
-                        {'originalPrice' in plan && plan.originalPrice && foundingAvailable && (
-                          <span
-                            className="text-[20px] font-medium line-through"
-                            style={{ color: '#4F4F4F' }}
-                          >
-                            {plan.originalPrice}
-                          </span>
-                        )}
-                        <span
-                          className="text-[32px] font-semibold"
-                          style={{ color: isFounding && foundingAvailable ? 'rgba(6, 182, 212, 0.9)' : '#F5F5F5' }}
-                        >
-                          {plan.price}
-                        </span>
-                        {plan.period && (
-                          <span className="text-[#6F6F6F] ml-1 text-[14px]">{plan.period}</span>
-                        )}
-                      </div>
-                    </div>
+                  {/* Microtext + Plan Name */}
+                  <div className="mb-6">
+                    {'microtext' in plan && plan.microtext && (
+                      <p className="text-[11px] text-[#6F6F6F] mb-2">
+                        {plan.microtext}
+                      </p>
+                    )}
+                    <h3 className="text-[13px] font-medium tracking-[0.05em] uppercase text-[#F5F5F5]">
+                      {plan.name}
+                    </h3>
                   </div>
 
-                  <p className="text-[#A0A0A0] text-[15px] mb-4 leading-snug">
+                  {/* Price */}
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-[36px] font-semibold text-[#F5F5F5]">
+                      {plan.price}
+                    </span>
+                    {plan.period && (
+                      <span className="text-[#6F6F6F] text-[14px]">{plan.period}</span>
+                    )}
+                  </div>
+
+                  {/* Trial copy for Pro - risk reduction */}
+                  {hasTrialCopy && (
+                    <p className="text-[13px] text-[#6F6F6F] mb-6 leading-relaxed">
+                      {plan.trialCopy}
+                    </p>
+                  )}
+
+                  {/* Description */}
+                  <p className="text-[#A0A0A0] text-[15px] mb-6">
                     {plan.description}
                   </p>
 
-                  {/* Founding slots remaining - prominent urgency indicator */}
+                  {/* Founding slots - quiet scarcity, no urgency */}
                   {isFounding && !spotsLoading && !spotsError && (
                     <div className="mb-6">
                       {spotsRemaining > 0 ? (
-                        <div
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
-                          style={{
-                            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.1))',
-                            border: '1px solid rgba(6, 182, 212, 0.3)',
-                          }}
-                        >
-                          <span
-                            className="flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold"
-                            style={{
-                              background: 'rgba(6, 182, 212, 0.3)',
-                              color: '#22d3ee',
-                              boxShadow: '0 0 8px rgba(6, 182, 212, 0.4)'
-                            }}
-                          >
-                            {spotsRemaining}
-                          </span>
-                          <span className="text-[13px] font-medium" style={{ color: '#22d3ee' }}>
-                            founding spot{spotsRemaining === 1 ? '' : 's'} remaining
-                          </span>
-                        </div>
+                        <p className="text-[13px] text-[#6F6F6F]">
+                          {spotsRemaining} founding spot{spotsRemaining === 1 ? '' : 's'} remaining
+                        </p>
                       ) : (
                         <p className="text-[13px] text-[#4F4F4F]">
                           Founding access is closed
@@ -368,43 +265,36 @@ export const LandingPage = () => {
                     </div>
                   )}
 
-                  <ul className="space-y-4 mb-10 flex-grow">
+                  {/* Features */}
+                  <ul className="space-y-3 mb-8 flex-grow">
                     {plan.features.map(feature => (
                       <li key={feature} className="flex items-center text-[14px] text-[#A0A0A0]">
-                        <div
-                          className="w-1.5 h-1.5 rounded-full mr-3 opacity-50"
-                          style={{ backgroundColor: isFounding && foundingAvailable ? '#06b6d4' : '#A0A0A0' }}
-                        />
+                        <div className="w-1 h-1 rounded-full bg-[#6F6F6F] mr-3" />
                         {feature}
                       </li>
                     ))}
                   </ul>
 
+                  {/* CTA Button */}
                   <button
                     onClick={() => foundingAvailable || !isFounding ? navigate('/login?mode=signup') : undefined}
                     disabled={isFounding && !foundingAvailable}
-                    className="w-full py-3 px-6 rounded-full text-[14px] font-medium transition-all duration-200 disabled:cursor-not-allowed"
+                    className="w-full py-3.5 px-6 rounded-full text-[14px] font-medium transition-all duration-200 disabled:cursor-not-allowed"
                     style={
-                      isFounding
-                        ? foundingAvailable
+                      isPro
+                        ? {
+                            background: '#F5F5F5',
+                            color: '#0B0B0B',
+                          }
+                        : isFounding && foundingAvailable
                           ? {
-                              background: 'rgba(6, 182, 212, 0.15)',
-                              color: '#06b6d4',
-                              border: '1px solid rgba(6, 182, 212, 0.2)',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              color: '#A0A0A0',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
                             }
                           : {
                               background: 'rgba(255, 255, 255, 0.04)',
                               color: '#4F4F4F',
-                            }
-                        : isPro
-                          ? {
-                              background: '#F5F5F5',
-                              color: '#0B0B0B',
-                            }
-                          : {
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              color: '#A0A0A0',
-                              border: '1px solid rgba(255, 255, 255, 0.08)',
                             }
                     }
                   >
@@ -415,10 +305,9 @@ export const LandingPage = () => {
             );
           })}
         </div>
-
       </section>
 
-      {/* Final CTA - Reassuring */}
+      {/* Final CTA - Hormozi Reassurance */}
       <section className="max-w-[1200px] mx-auto px-6 py-24 text-center">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -426,12 +315,12 @@ export const LandingPage = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-[24px] font-semibold text-[#F5F5F5] mb-4 tracking-tight">
+          <h2 className="text-[22px] font-semibold text-[#F5F5F5] mb-4 tracking-tight">
             Start where you are.
           </h2>
-          <p className="text-[15px] text-[#6F6F6F] mb-8 max-w-[360px] mx-auto">
-            Try it free for 7 days. No pressure. <br />
-            Cancel anytime.
+          <p className="text-[15px] text-[#6F6F6F] mb-8 max-w-[380px] mx-auto leading-relaxed">
+            No pressure. No streaks to protect.<br />
+            You can always change later.
           </p>
           <button
             onClick={() => navigate('/login?mode=signup')}
