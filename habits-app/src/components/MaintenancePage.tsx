@@ -1,17 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 
 export const MaintenancePage = () => {
-  const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
-
-  const handleSecretClick = () => {
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    if (newCount >= 3) {
-      setShowEasterEgg(true);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#000000] flex items-center justify-center relative overflow-hidden selection:bg-white/10">
@@ -107,10 +96,10 @@ export const MaintenancePage = () => {
           className="text-[15px] font-normal tracking-[-0.01em]"
           style={{ color: 'rgba(255, 255, 255, 0.35)' }}
         >
-          Please check again later
+          Jonas is sleeping...or coding...
         </motion.p>
 
-        {/* Breathing dot indicator - secret click target */}
+        {/* Breathing dot indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -118,15 +107,12 @@ export const MaintenancePage = () => {
           className="mt-16 flex justify-center"
         >
           <motion.div
-            className="w-1.5 h-1.5 rounded-full cursor-pointer"
+            className="w-1.5 h-1.5 rounded-full"
             style={{ background: 'rgba(255, 255, 255, 0.6)' }}
-            onClick={handleSecretClick}
             animate={{
               opacity: [0.3, 0.8, 0.3],
               scale: [1, 1.2, 1],
             }}
-            whileHover={{ scale: 1.5 }}
-            whileTap={{ scale: 0.8 }}
             transition={{
               duration: 2.5,
               repeat: Infinity,
@@ -134,56 +120,6 @@ export const MaintenancePage = () => {
             }}
           />
         </motion.div>
-
-        {/* Easter egg */}
-        {showEasterEgg && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            className="mt-12"
-          >
-            <motion.p
-              className="text-[11px] tracking-[0.1em] uppercase"
-              style={{ color: 'rgba(255, 255, 255, 0.2)' }}
-              animate={{
-                color: [
-                  'rgba(255, 255, 255, 0.2)',
-                  'rgba(139, 92, 246, 0.4)',
-                  'rgba(59, 130, 246, 0.4)',
-                  'rgba(255, 255, 255, 0.2)',
-                ],
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            >
-              Jonas has spent 4.23 million tokens so far on this
-            </motion.p>
-
-            {/* Sparkle burst animation */}
-            <div className="relative h-8 mt-4">
-              {[...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full"
-                  style={{ background: 'rgba(139, 92, 246, 0.8)' }}
-                  initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
-                  animate={{
-                    x: [0, Math.cos(i * 45 * Math.PI / 180) * 40],
-                    y: [0, Math.sin(i * 45 * Math.PI / 180) * 40],
-                    opacity: [0, 1, 0],
-                    scale: [0, 1.5, 0],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    delay: i * 0.1,
-                    repeatDelay: 2,
-                  }}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Bottom gradient fade */}
