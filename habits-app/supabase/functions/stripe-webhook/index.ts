@@ -257,22 +257,39 @@ async function handleCheckoutSessionCompleted(
     }
 
     try {
-      // Update user entitlements to founding plan
-      const { error: updateError } = await supabase
-        .from("user_entitlements")
-        .upsert(
-          {
-            user_id: userId,
-            plan: "founding",
-            status: "active",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+      // P1-BILL-3: Use transactional RPC to claim slot atomically
+      // This prevents race conditions where two payments could both succeed
+      // but only one slot is available. The RPC uses FOR UPDATE locking.
+      const { data: claimResult, error: claimError } = await supabase.rpc(
+        "claim_founding_slot",
+        { user_uuid: userId }
+      );
 
-      if (updateError) {
-        console.error("Error updating user entitlements:", updateError);
-        throw updateError;
+      if (claimError) {
+        console.error("Error claiming founding slot:", claimError);
+        throw claimError;
+      }
+
+      // Check if slot was successfully claimed
+      if (!claimResult?.success) {
+        // This is an edge case: user paid but no slots available
+        // This can happen if slots ran out between checkout creation and payment
+        console.error(
+          `No founding slots available for user ${userId}. Payment received but slot claim failed.`
+        );
+        // Still return 200 to Stripe (payment succeeded, we need to handle refund separately)
+        // TODO: Trigger a refund via Stripe API or flag for manual review
+        return new Response(
+          JSON.stringify({
+            received: true,
+            action: "founding_slot_unavailable",
+            warning: "Payment received but no slots available - manual review required",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       }
 
       // Update user profile for backward compatibility
@@ -287,7 +304,9 @@ async function handleCheckoutSessionCompleted(
         is_trial_user: false,
       });
 
-      console.log(`Founding membership activated for user ${userId}`);
+      console.log(
+        `Founding membership activated for user ${userId}, slot ${claimResult.slot_id}`
+      );
 
       return new Response(
         JSON.stringify({ received: true, action: "founding_payment_completed" }),
@@ -340,13 +359,17 @@ async function handleSubscriptionDeleted(
   });
 
   // Also update new billing schema if available
+  // P1-BILL-2 FIX: Set plan to 'none' on deletion (not 'pro')
   const userId = subscription.metadata?.supabase_user_id;
   if (userId) {
     await supabase.from("user_entitlements").upsert(
       {
         user_id: userId,
-        plan: "pro",
+        plan: "none",  // FIXED: Was incorrectly set to 'pro'
         status: "canceled",
+        stripe_subscription_id: null,  // Clear subscription reference
+        current_period_ends_at: null,  // Clear period end
+        trial_ends_at: null,  // Clear trial
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
@@ -360,7 +383,7 @@ async function handleSubscriptionDeleted(
     });
   }
 
-  console.log(`Subscription deleted for customer ${customerId}`);
+  console.log(`Subscription deleted for customer ${customerId}, downgraded to free tier`);
 
   return new Response(
     JSON.stringify({ received: true, action: "subscription_deleted" }),
@@ -369,6 +392,31 @@ async function handleSubscriptionDeleted(
       headers: { "Content-Type": "application/json" },
     }
   );
+}
+
+// Idempotency check: returns true if event was already processed
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("processed_webhook_events")
+    .select("id")
+    .eq("id", eventId)
+    .maybeSingle();
+  return data !== null;
+}
+
+// Mark event as processed (returns false if already exists)
+async function markEventProcessed(
+  eventId: string,
+  eventType: string,
+  metadata: Record<string, unknown> = {}
+): Promise<boolean> {
+  const { error } = await supabase.from("processed_webhook_events").insert({
+    id: eventId,
+    event_type: eventType,
+    metadata,
+  });
+  // If conflict (duplicate), error will be set
+  return !error;
 }
 
 // Main handler
@@ -428,7 +476,37 @@ serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  console.log(`Received webhook event: ${event.type}`);
+  console.log(`Received webhook event: ${event.type} (${event.id})`);
+
+  // P0-BILL-1: Idempotency check - skip if already processed
+  if (await isEventProcessed(event.id)) {
+    console.log(`Event ${event.id} already processed, skipping`);
+    return new Response(
+      JSON.stringify({ received: true, action: "already_processed" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // Mark as processed BEFORE handling (prevents race conditions)
+  const marked = await markEventProcessed(event.id, event.type, {
+    created: event.created,
+    livemode: event.livemode,
+  });
+
+  if (!marked) {
+    // Another worker already processing this event
+    console.log(`Event ${event.id} being processed by another worker`);
+    return new Response(
+      JSON.stringify({ received: true, action: "duplicate_processing" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 
   // Handle the event based on type
   try {
