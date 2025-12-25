@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { Check } from 'lucide-react';
 
 export type PaywallTrigger = 'habit_limit' | 'export' | 'lock';
 
@@ -11,33 +10,27 @@ interface PaywallModalProps {
   trigger: PaywallTrigger;
 }
 
-const TRIGGER_COPY: Record<PaywallTrigger, { title: string; description: string }> = {
+const TRIGGER_COPY: Record<PaywallTrigger, { title: string; subtitle: string }> = {
   habit_limit: {
-    title: "Ready to take this seriously?",
-    description: "You've built momentum with 3 habits. Pro unlocks the full toolkit.",
+    title: "Unlock Pro",
+    subtitle: "Continue building your habits",
   },
   export: {
-    title: 'For when you want to see the full picture',
-    description: 'Export detailed reports to understand your patterns over time.',
+    title: 'Unlock Pro',
+    subtitle: 'Export your progress reports',
   },
   lock: {
-    title: 'For deeper commitment',
-    description: 'Lock in your habits and stay accountable to yourself.',
+    title: 'Unlock Pro',
+    subtitle: 'Access all premium features',
   },
 };
-
-const FEATURES = [
-  'Unlimited habits',
-  'Insights over time',
-  'Cloud sync across devices',
-];
 
 export const PaywallModal = ({ isOpen, onClose, trigger }: PaywallModalProps) => {
   const { openCheckout } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { title, description } = TRIGGER_COPY[trigger];
+  const { title, subtitle } = TRIGGER_COPY[trigger];
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -54,189 +47,205 @@ export const PaywallModal = ({ isOpen, onClose, trigger }: PaywallModalProps) =>
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - subtle blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 liquid-glass-backdrop"
+            className="fixed inset-0 z-50"
+            style={{
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}
           />
 
-          {/* Modal */}
+          {/* Modal - refined glass */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-[420px] px-7 py-8 liquid-glass-modal"
+            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-[360px] mx-4"
+            style={{
+              background: 'rgba(18, 18, 18, 0.85)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              borderRadius: '20px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 24px 80px -12px rgba(0, 0, 0, 0.5)',
+            }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <motion.h2
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="text-[24px] font-semibold tracking-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                {title}
-              </motion.h2>
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                onClick={onClose}
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
-                style={{ color: 'var(--text-muted)' }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </motion.button>
-            </div>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.3 }}
-              className="text-[15px] mb-6"
-              style={{ color: 'var(--text-secondary)' }}
+            {/* Close button */}
+            <motion.button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+              style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+              whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
+              whileTap={{ scale: 0.9 }}
             >
-              {description}
-            </motion.p>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </motion.button>
 
-            {/* Pricing Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="grid grid-cols-2 gap-3 mb-6"
-            >
-              {/* Monthly */}
-              <motion.button
-                type="button"
-                onClick={() => setSelectedPlan('monthly')}
-                className={`relative p-4 rounded-2xl border transition-all text-left ${
-                  selectedPlan === 'monthly'
-                    ? 'border-white/30 bg-white/10'
-                    : 'border-white/10 bg-white/5 hover:bg-white/8'
-                }`}
-                whileTap={{ scale: 0.98 }}
+            <div className="px-7 pt-10 pb-8">
+              {/* Header - minimal */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="text-center mb-8"
               >
-                <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Monthly
-                </div>
-                <div className="text-[24px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  $9
-                  <span className="text-[14px] font-normal" style={{ color: 'var(--text-muted)' }}>/mo</span>
-                </div>
-                {selectedPlan === 'monthly' && (
-                  <motion.div
-                    layoutId="plan-indicator"
-                    className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center"
-                    initial={false}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  >
-                    <Check size={12} color="#0B0B0B" strokeWidth={3} />
-                  </motion.div>
-                )}
-              </motion.button>
+                <h2
+                  className="text-[26px] font-semibold tracking-[-0.02em] mb-1"
+                  style={{ color: '#FFFFFF' }}
+                >
+                  {title}
+                </h2>
+                <p
+                  className="text-[14px]"
+                  style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                >
+                  {subtitle}
+                </p>
+              </motion.div>
 
-              {/* Annual */}
-              <motion.button
-                type="button"
-                onClick={() => setSelectedPlan('annual')}
-                className={`relative p-4 rounded-2xl border transition-all text-left ${
-                  selectedPlan === 'annual'
-                    ? 'border-white/30 bg-white/10'
-                    : 'border-white/10 bg-white/5 hover:bg-white/8'
-                }`}
-                whileTap={{ scale: 0.98 }}
+              {/* Pricing - ultra clean */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="flex gap-3 mb-8"
               >
-                <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Annual
-                </div>
-                <div className="text-[24px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  $79
-                  <span className="text-[14px] font-normal" style={{ color: 'var(--text-muted)' }}>/yr</span>
-                </div>
-                <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  2 months free
-                </div>
-                {selectedPlan === 'annual' && (
-                  <motion.div
-                    layoutId="plan-indicator"
-                    className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center"
-                    initial={false}
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                {/* Monthly */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan('monthly')}
+                  className="flex-1 py-5 px-4 rounded-2xl text-center transition-all duration-200"
+                  style={{
+                    background: selectedPlan === 'monthly'
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedPlan === 'monthly'
+                      ? '1px solid rgba(255, 255, 255, 0.2)'
+                      : '1px solid rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <div
+                    className="text-[11px] uppercase tracking-[0.08em] font-medium mb-2"
+                    style={{ color: 'rgba(255, 255, 255, 0.4)' }}
                   >
-                    <Check size={12} color="#0B0B0B" strokeWidth={3} />
-                  </motion.div>
-                )}
-              </motion.button>
-            </motion.div>
+                    Monthly
+                  </div>
+                  <div
+                    className="text-[28px] font-semibold tracking-[-0.02em]"
+                    style={{ color: selectedPlan === 'monthly' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)' }}
+                  >
+                    $9
+                  </div>
+                </button>
 
-            {/* Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.3 }}
-              className="mb-6"
-            >
-              <div className="space-y-3">
-                {FEATURES.map((feature, index) => (
-                  <motion.div
-                    key={feature}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.05 }}
-                    className="flex items-center gap-3"
+                {/* Annual */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan('annual')}
+                  className="flex-1 py-5 px-4 rounded-2xl text-center transition-all duration-200 relative"
+                  style={{
+                    background: selectedPlan === 'annual'
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedPlan === 'annual'
+                      ? '1px solid rgba(255, 255, 255, 0.2)'
+                      : '1px solid rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <div
+                    className="text-[11px] uppercase tracking-[0.08em] font-medium mb-2"
+                    style={{ color: 'rgba(255, 255, 255, 0.4)' }}
                   >
-                    <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                      <Check size={12} style={{ color: 'var(--text-primary)' }} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                    Annual
+                  </div>
+                  <div
+                    className="text-[28px] font-semibold tracking-[-0.02em]"
+                    style={{ color: selectedPlan === 'annual' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)' }}
+                  >
+                    $79
+                  </div>
+                  <div
+                    className="text-[11px] mt-1"
+                    style={{ color: 'rgba(34, 197, 94, 0.8)' }}
+                  >
+                    Save $29
+                  </div>
+                </button>
+              </motion.div>
+
+              {/* Features - minimal list */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mb-8 space-y-3"
+              >
+                {['Unlimited habits', 'Insights & analytics', 'Sync across devices'].map((feature) => (
+                  <div key={feature} className="flex items-center gap-3">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.4)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span
+                      className="text-[13px]"
+                      style={{ color: 'rgba(255, 255, 255, 0.6)' }}
+                    >
                       {feature}
                     </span>
-                  </motion.div>
+                  </div>
                 ))}
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Divider */}
-            <div className="liquid-glass-divider" />
-
-            {/* Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.3 }}
-              className="flex flex-col gap-3"
-            >
+              {/* CTA Button - refined */}
               <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
                 type="button"
                 onClick={handleSubscribe}
                 disabled={isLoading}
-                className="liquid-glass-btn-primary w-full"
-                whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                className="w-full py-4 rounded-xl text-[15px] font-semibold transition-all duration-200"
+                style={{
+                  background: '#FFFFFF',
+                  color: '#0B0B0B',
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+                whileHover={{ scale: isLoading ? 1 : 1.01 }}
                 whileTap={{ scale: isLoading ? 1 : 0.98 }}
               >
                 {isLoading ? 'Loading...' : 'Continue'}
               </motion.button>
+
+              {/* Cancel link */}
               <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25 }}
                 type="button"
                 onClick={onClose}
-                className="liquid-glass-btn-secondary w-full"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                className="w-full mt-4 py-2 text-[13px] transition-opacity"
+                style={{ color: 'rgba(255, 255, 255, 0.35)' }}
               >
-                Maybe later
+                Not now
               </motion.button>
-            </motion.div>
+            </div>
           </motion.div>
         </>
       )}
