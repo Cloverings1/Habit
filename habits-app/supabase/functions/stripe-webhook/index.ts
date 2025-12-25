@@ -227,6 +227,35 @@ async function handleSubscriptionUpdated(
   );
 }
 
+// Helper: Get user_id from customer ID by checking billing_customers and user_profiles
+async function getUserIdFromCustomer(stripeCustomerId: string): Promise<string | null> {
+  // Try billing_customers first (new table)
+  const { data: billingData } = await supabase
+    .from('billing_customers')
+    .select('user_id')
+    .eq('stripe_customer_id', stripeCustomerId)
+    .maybeSingle();
+
+  if (billingData?.user_id) {
+    console.log('Found user in billing_customers:', billingData.user_id);
+    return billingData.user_id;
+  }
+
+  // Fallback to user_profiles (legacy)
+  const { data: profileData } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .eq('stripe_customer_id', stripeCustomerId)
+    .maybeSingle();
+
+  if (profileData?.id) {
+    console.log('Found user in user_profiles:', profileData.id);
+    return profileData.id;
+  }
+
+  return null;
+}
+
 // Handle checkout.session.completed event (for one-time payments like Founding)
 async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session
@@ -243,11 +272,17 @@ async function handleCheckoutSessionCompleted(
   }
 
   const planType = session.metadata?.plan_type;
+  // Get user_id from metadata first, then fall back to customer lookup
+  let userId = session.metadata?.supabase_user_id;
+
+  if (!userId) {
+    userId = await getUserIdFromCustomer(customerId) ?? undefined;
+  }
+
+  console.log(`Checkout completed: planType=${planType}, userId=${userId}, customerId=${customerId}`);
 
   // Handle founding membership purchase
   if (planType === "founding") {
-    const userId = session.metadata?.supabase_user_id;
-
     if (!userId) {
       console.error("No user ID in founding checkout session");
       return new Response(JSON.stringify({ error: "No user in session" }), {
@@ -325,6 +360,54 @@ async function handleCheckoutSessionCompleted(
           headers: { "Content-Type": "application/json" },
         }
       );
+    }
+  }
+
+  // Handle Pro subscription checkout (planType === "pro" or subscription exists)
+  if (session.subscription && userId) {
+    const subscriptionId = typeof session.subscription === "string"
+      ? session.subscription
+      : session.subscription.id;
+
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      const isTrialing = subscription.status === "trialing";
+      const trialEnd = subscription.trial_end
+        ? new Date(subscription.trial_end * 1000).toISOString()
+        : null;
+      const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
+      console.log(`Pro subscription: status=${subscription.status}, trial_end=${trialEnd}, userId=${userId}`);
+
+      // Update user_entitlements for Pro subscription
+      const { error: entitlementError } = await supabase.from("user_entitlements").upsert(
+        {
+          user_id: userId,
+          plan: "pro",
+          status: isTrialing ? "trialing" : "active",
+          stripe_subscription_id: subscriptionId,
+          trial_ends_at: trialEnd,
+          current_period_ends_at: periodEnd,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (entitlementError) {
+        console.error("Error updating entitlement from checkout:", entitlementError);
+      } else {
+        console.log(`Updated entitlement for user ${userId}: pro/${isTrialing ? "trialing" : "active"}`);
+      }
+
+      return new Response(
+        JSON.stringify({ received: true, action: "pro_checkout_completed" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (err) {
+      console.error("Error processing pro checkout:", err);
     }
   }
 

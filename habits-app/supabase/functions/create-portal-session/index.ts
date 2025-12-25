@@ -1,36 +1,20 @@
-// Supabase Edge Function: create-portal-session
-// Creates a Stripe Customer Portal Session for subscription management
-// Deploy with: supabase functions deploy create-portal-session
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import Stripe from "https://esm.sh/stripe@14.10.0?target=deno";
-
-// Initialize Stripe
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2023-10-16",
-  httpClient: Stripe.createFetchHttpClient(),
-});
-
-// Initialize Supabase
-const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-
-// CORS headers for browser requests
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Request body interface
 interface PortalRequest {
   returnUrl?: string;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  // Handle CORS preflight request
+export default async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -47,8 +31,8 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Extract the JWT token from the Authorization header
-    const authHeader = req.headers.get("Authorization");
+    // Get auth user
+    const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
@@ -59,48 +43,54 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create a Supabase client with the user's JWT
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+    const token = authHeader.replace("Bearer ", "");
+
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
-    // Get the authenticated user
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify JWT and get user
     const {
       data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      error: userError,
+    } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized", details: authError?.message }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Get the user's Stripe customer ID from their profile
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
+    // Try to get customer ID from billing_customers first, then fallback to user_profiles
+    let stripeCustomerId: string | null = null;
+
+    const { data: billingCustomer } = await supabase
+      .from("billing_customers")
       .select("stripe_customer_id")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .single();
 
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError);
-      return new Response(
-        JSON.stringify({ error: "Error fetching user profile" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (billingCustomer?.stripe_customer_id) {
+      stripeCustomerId = billingCustomer.stripe_customer_id;
+    } else {
+      // Fallback to legacy user_profiles
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("stripe_customer_id")
+        .eq("id", user.id)
+        .single();
+
+      stripeCustomerId = profile?.stripe_customer_id || null;
     }
 
-    if (!profile?.stripe_customer_id) {
+    if (!stripeCustomerId) {
       return new Response(
         JSON.stringify({
           error: "No subscription found",
@@ -113,26 +103,25 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Parse the request body
-    let returnUrl: string;
+    // Parse the request body for return URL
+    const appUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
+    let returnUrl = appUrl;
+
     try {
       const body: PortalRequest = await req.json();
-      returnUrl =
-        body.returnUrl ||
-        `${req.headers.get("origin") || "http://localhost:5173"}/`;
+      returnUrl = body.returnUrl || appUrl;
     } catch {
       // If body parsing fails, use default return URL
-      returnUrl = `${req.headers.get("origin") || "http://localhost:5173"}/`;
     }
 
     // Create the Stripe Customer Portal Session
     const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: stripeCustomerId,
       return_url: returnUrl,
     });
 
     console.log(
-      `Created portal session for user ${user.id} (customer: ${profile.stripe_customer_id})`
+      `Created portal session for user ${user.id} (customer: ${stripeCustomerId})`
     );
 
     return new Response(
@@ -158,4 +147,4 @@ serve(async (req: Request): Promise<Response> => {
       }
     );
   }
-});
+};

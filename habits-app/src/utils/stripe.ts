@@ -19,6 +19,7 @@ export const createCheckoutSession = async (priceId: string): Promise<void> => {
     throw new Error('You must be logged in to subscribe');
   }
 
+  console.log('Invoking create-checkout-session function...');
   const response = await supabase.functions.invoke('create-checkout-session', {
     body: { priceId },
     headers: {
@@ -27,21 +28,19 @@ export const createCheckoutSession = async (priceId: string): Promise<void> => {
   });
 
   if (response.error) {
+    console.error('Checkout session error:', response.error);
     throw new Error(response.error.message || 'Failed to create checkout session');
   }
 
-  const { sessionId } = response.data;
+  const { url } = response.data;
 
-  const stripe = await getStripe();
-  if (!stripe) {
-    throw new Error('Stripe failed to initialize');
+  if (!url) {
+    console.error('No URL in response:', response.data);
+    throw new Error('No checkout URL returned from server');
   }
 
-  const { error: redirectError } = await stripe.redirectToCheckout({ sessionId });
-
-  if (redirectError) {
-    throw new Error(redirectError.message || 'Failed to redirect to checkout');
-  }
+  console.log('Redirecting to Stripe checkout...');
+  window.location.href = url;
 };
 
 export const createPortalSession = async (): Promise<void> => {

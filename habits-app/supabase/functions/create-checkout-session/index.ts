@@ -1,39 +1,22 @@
-// Supabase Edge Function: create-checkout-session
-// Creates a Stripe Checkout Session for subscription purchases
-// Deploy with: supabase functions deploy create-checkout-session
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import Stripe from "https://esm.sh/stripe@14.10.0?target=deno";
-
-// Initialize Stripe
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2023-10-16",
-  httpClient: Stripe.createFetchHttpClient(),
-});
-
-// Initialize Supabase clients
-const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-// CORS headers for browser requests
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Request body interface
 interface CheckoutRequest {
   priceId: string;
   successUrl?: string;
   cancelUrl?: string;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  // Handle CORS preflight request
+export default async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -50,8 +33,8 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Extract the JWT token from the Authorization header
-    const authHeader = req.headers.get("Authorization");
+    // Get auth user
+    const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
@@ -62,27 +45,29 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create a Supabase client with the user's JWT for auth verification
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+    const token = authHeader.replace("Bearer ", "");
+
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
-    // Get the authenticated user
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify JWT and get user
     const {
       data: { user },
-      error: authError,
-    } = await supabaseAuth.auth.getUser();
+      error: userError,
+    } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized", details: authError?.message }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Parse the request body
@@ -99,74 +84,51 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create a Supabase client with service role to update user profile
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get the user's profile to check for existing Stripe customer
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("user_profiles")
+    // Get or create billing customer (use billing_customers table like create-pro-trial-session)
+    let { data: billingCustomer } = await supabase
+      .from("billing_customers")
       .select("stripe_customer_id")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .single();
 
-    if (profileError && profileError.code !== "PGRST116") {
-      // PGRST116 = no rows found, which is okay
-      console.error("Error fetching user profile:", profileError);
-      return new Response(
-        JSON.stringify({ error: "Error fetching user profile" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    let stripeCustomerId: string;
 
-    let stripeCustomerId = profile?.stripe_customer_id;
+    if (billingCustomer?.stripe_customer_id) {
+      stripeCustomerId = billingCustomer.stripe_customer_id;
+    } else {
+      // Create new Stripe customer
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      });
 
-    // If user doesn't have a Stripe customer, create one
-    if (!stripeCustomerId) {
-      try {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            supabase_user_id: user.id,
-          },
-        });
-        stripeCustomerId = customer.id;
+      stripeCustomerId = customer.id;
 
-        // Save the Stripe customer ID to the user's profile
-        const { error: updateError } = await supabaseAdmin
-          .from("user_profiles")
-          .upsert(
-            {
-              id: user.id,
-              stripe_customer_id: stripeCustomerId,
-              updated_at: new Date().toISOString(),
-            },
-            {
-              onConflict: "id",
-            }
-          );
+      // Store in billing_customers table
+      await supabase.from("billing_customers").insert({
+        user_id: user.id,
+        stripe_customer_id: stripeCustomerId,
+      });
 
-        if (updateError) {
-          console.error("Error saving Stripe customer ID:", updateError);
-          // Continue anyway - the checkout will still work
-        }
-      } catch (stripeError) {
-        console.error("Error creating Stripe customer:", stripeError);
-        return new Response(
-          JSON.stringify({ error: "Error creating Stripe customer" }),
+      // Also update legacy user_profiles for backwards compatibility
+      await supabase
+        .from("user_profiles")
+        .upsert(
           {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+            id: user.id,
+            stripe_customer_id: stripeCustomerId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
         );
-      }
     }
 
-    // Default URLs if not provided
-    const defaultSuccessUrl = `${req.headers.get("origin") || "http://localhost:5173"}/?checkout=success`;
-    const defaultCancelUrl = `${req.headers.get("origin") || "http://localhost:5173"}/?checkout=canceled`;
+    // Default URLs
+    const appUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
+    const defaultSuccessUrl = successUrl || `${appUrl}/billing/return?session_id={CHECKOUT_SESSION_ID}`;
+    const defaultCancelUrl = cancelUrl || `${appUrl}/?canceled=true`;
 
     // Create the Stripe Checkout Session with 7-day trial
     const session = await stripe.checkout.sessions.create({
@@ -179,33 +141,22 @@ serve(async (req: Request): Promise<Response> => {
           quantity: 1,
         },
       ],
-      success_url: successUrl || defaultSuccessUrl,
-      cancel_url: cancelUrl || defaultCancelUrl,
-      // Allow promotion codes
-      allow_promotion_codes: true,
-      // Collect billing address for tax purposes
-      billing_address_collection: "auto",
-      // Automatic tax calculation (if configured in Stripe)
-      automatic_tax: { enabled: false },
-      // Subscription data with 7-day trial
+      metadata: {
+        supabase_user_id: user.id,
+        plan_type: "pro",
+      },
       subscription_data: {
+        trial_period_days: 7,
         metadata: {
           supabase_user_id: user.id,
         },
-        trial_period_days: 7, // 7-day free trial
-        trial_settings: {
-          end_behavior: {
-            missing_payment_method: "cancel", // Cancel subscription if payment fails at trial end
-          },
-        },
       },
-      // Always collect payment method upfront (user won't be charged until trial ends)
+      success_url: defaultSuccessUrl,
+      cancel_url: defaultCancelUrl,
+      // Allow promotion codes
+      allow_promotion_codes: true,
+      // Always collect payment method upfront
       payment_method_collection: "always",
-      // Customer update settings
-      customer_update: {
-        address: "auto",
-        name: "auto",
-      },
     });
 
     console.log(
@@ -226,11 +177,14 @@ serve(async (req: Request): Promise<Response> => {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("Error creating checkout session:", errorMessage);
     return new Response(
-      JSON.stringify({ error: "Error creating checkout session", details: errorMessage }),
+      JSON.stringify({
+        error: "Error creating checkout session",
+        details: errorMessage,
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
-});
+};
