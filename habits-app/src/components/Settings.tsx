@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useEntitlement } from '../contexts/EntitlementContext';
 import { storage } from '../utils/storage';
-import { useNavigate } from 'react-router-dom';
 import { EditHabitModal } from './EditHabitModal';
 import { PaywallModal } from './PaywallModal';
 import { ConsistencyReport } from './ConsistencyReport';
@@ -49,7 +48,6 @@ export const Settings = () => {
   const { isTrialing, trialState, status, currentPeriodEnd, cancelAtPeriodEnd, openPortal } = useSubscription();
   const { hasAccess, isFounding, isPro, isBeta } = useEntitlement();
   const hasPremiumAccess = hasAccess;
-  const navigate = useNavigate();
 
   // Existing state
   const [editingName, setEditingName] = useState(false);
