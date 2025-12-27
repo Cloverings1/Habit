@@ -134,7 +134,7 @@ export const AddHabitModal = ({ isOpen, onClose }: AddHabitModalProps) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             onClick={handleClose}
-            className="fixed inset-0 z-50 liquid-glass-backdrop"
+            className="fixed inset-0 z-50 liquid-glass-backdrop liquid-glass-backdrop--subtle"
           />
 
           {/* Modal */}
@@ -143,7 +143,7 @@ export const AddHabitModal = ({ isOpen, onClose }: AddHabitModalProps) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-[400px] px-7 py-8 liquid-glass-modal"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-[400px] px-7 py-8 liquid-glass-modal liquid-glass-modal--subtle"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-7">

@@ -1066,6 +1066,14 @@ html.light .liquid-glass-backdrop {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.liquid-glass-backdrop--subtle {
+  background: rgba(0, 0, 0, 0.196); /* 30% less opaque than default */
+}
+
+html.light .liquid-glass-backdrop--subtle {
+  background: rgba(255, 255, 255, 0.21); /* 30% less opaque than default */
+}
+
 .liquid-glass-modal {
   background: rgba(28, 28, 30, 0.35);
   backdrop-filter: blur(80px) saturate(180%);
@@ -1085,6 +1093,14 @@ html.light .liquid-glass-modal {
     0 0 0 0.5px rgba(255, 255, 255, 0.8) inset,
     0 32px 64px -12px rgba(0, 0, 0, 0.15),
     0 0 80px -20px rgba(0, 0, 0, 0.1);
+}
+
+.liquid-glass-modal--subtle {
+  background: rgba(28, 28, 30, 0.245); /* 30% less opaque than default */
+}
+
+html.light .liquid-glass-modal--subtle {
+  background: rgba(255, 255, 255, 0.35); /* 30% less opaque than default */
 }
 
 .liquid-glass-input {
