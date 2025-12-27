@@ -81,9 +81,11 @@ const AppLayout = () => {
       return;
     }
     
-    // Fallback: check if user is beta and hasn't seen loading screen
+    // Fallback: check if user is beta and hasn't seen loading screen (per-user)
     if (isBeta) {
-      const hasSeenLoading = localStorage.getItem('beta_loading_seen') === 'true';
+      const hasSeenLoading =
+        localStorage.getItem(`beta_loading_seen:${user.id}`) === 'true' ||
+        localStorage.getItem('beta_loading_seen') === 'true'; // legacy key
       if (!hasSeenLoading) {
         setShowBetaLoading(true);
       }
@@ -193,6 +195,9 @@ function LoginRoute() {
   const [searchParams] = useSearchParams();
 
   const checkoutInProgress = sessionStorage.getItem('checkout_in_progress') === 'true';
+  const betaOnboardingInProgress =
+    sessionStorage.getItem('beta_onboarding_in_progress') === 'true' ||
+    sessionStorage.getItem('beta_show_loading') === 'true';
   const postConfirm = searchParams.get('post_confirm') === '1' || searchParams.get('post_confirm') === 'true';
   const planFromUrl = searchParams.get('plan');
   const planFromStorage = localStorage.getItem(PENDING_CHECKOUT_PLAN_KEY);
@@ -200,7 +205,7 @@ function LoginRoute() {
   const hasPendingCheckout = postConfirm && (plan === 'pro' || plan === 'founding');
 
   // If user is authenticated and no pending checkout flow, send them into the app.
-  if (user && !checkoutInProgress && !hasPendingCheckout) {
+  if (user && !checkoutInProgress && !hasPendingCheckout && !betaOnboardingInProgress) {
     return <Navigate to="/app" replace />;
   }
 

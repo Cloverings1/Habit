@@ -6,6 +6,7 @@ import { createProTrialCheckout, createFoundingCheckout } from '../utils/stripe'
 import { useAuth } from '../contexts/AuthContext';
 import { TermsModal } from './TermsModal';
 import { FoundingCelebration } from './FoundingCelebration';
+import { BetaLoadingScreen } from './BetaLoadingScreen';
 import { useDiamondSpots } from '../hooks/useDiamondSpots';
 import { HABIT_COLORS } from '../types';
 
@@ -27,6 +28,9 @@ export const AuthPage = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showFoundingCelebration, setShowFoundingCelebration] = useState(false);
   const [pendingCheckoutPlan, setPendingCheckoutPlan] = useState<PendingCheckoutPlan | null>(null);
+  const [showBetaOnboarding, setShowBetaOnboarding] = useState(false);
+  const [betaOnboardingComplete, setBetaOnboardingComplete] = useState(false);
+  const [betaOnboardingUserId, setBetaOnboardingUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isMountedRef = useRef(true);
@@ -137,19 +141,31 @@ export const AuthPage = () => {
 
   const handleTermsAccept = async () => {
     setShowTermsModal(false);
-    setShowSuccess(true);
+    // We'll show a dedicated beta onboarding screen for beta signups.
+    // For all other flows, keep the existing success/loading modal.
     setLoadingProgress(0);
     setError(null);
     setPendingCheckoutPlan(null);
+    setBetaOnboardingComplete(false);
+    setBetaOnboardingUserId(null);
 
     // Get the plan parameter from URL upfront
     const planParam = searchParams.get('plan');
     const requiresCheckout = planParam === 'pro' || planParam === 'founding';
     const isBeta = planParam === 'beta';
 
+    if (isBeta) {
+      // Prevent LoginRoute auto-redirecting into /app immediately once the session is created.
+      sessionStorage.setItem('beta_onboarding_in_progress', 'true');
+      // Show beta onboarding screen immediately after accepting terms.
+      setShowBetaOnboarding(true);
+    } else {
+      setShowSuccess(true);
+    }
+
     // Animate the loading bar
     const startTime = Date.now();
-    const duration = (requiresCheckout || isBeta) ? 800 : 1500; // Faster animation for checkout/beta flows
+    const duration = (requiresCheckout || isBeta) ? 800 : 1500; // legacy success modal duration
 
     const animateProgress = () => {
       const elapsed = Date.now() - startTime;
@@ -187,6 +203,9 @@ export const AuthPage = () => {
       if (signUpError) throw signUpError;
 
       console.log('✅ Account created. planParam:', planParam);
+      if (isBeta && signUpData?.session?.user?.id) {
+        setBetaOnboardingUserId(signUpData.session.user.id);
+      }
 
       // Founding slots disabled for now
       const claimedFoundingSpot = false;
@@ -220,17 +239,21 @@ export const AuthPage = () => {
         }
       } else {
         // No plan specified or beta signup - show regular celebration (email verification)
-        await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
-        if (isMountedRef.current) {
-          // If beta user and has session, mark for loading screen
-          if (isBeta && signUpData?.session) {
-            sessionStorage.setItem('beta_show_loading', 'true');
-            // Navigate to app to trigger loading screen
-            navigate('/app');
-            return;
-          }
-          setShowCelebration(true);
+        // For beta signups with an immediate session, show beta onboarding for ~2.5s + success,
+        // then fade into the app. For beta signups without a session (email confirmation),
+        // fall back to the existing email verification celebration.
+        if (isBeta && signUpData?.session && isMountedRef.current) {
+          const minDuration = 2500;
+          await new Promise(resolve => setTimeout(resolve, Math.max(0, minDuration - (Date.now() - startTime))));
+          if (!isMountedRef.current) return;
+
+          // Mark onboarding complete; BetaLoadingScreen will play success and call onComplete.
+          setBetaOnboardingComplete(true);
+          return;
         }
+
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
+        if (isMountedRef.current) setShowCelebration(true);
       }
     } catch (err: unknown) {
       console.error('❌ Signup/checkout error:', err);
@@ -239,6 +262,9 @@ export const AuthPage = () => {
 
       // Always close the loading modal on error
       setShowSuccess(false);
+      setShowBetaOnboarding(false);
+      setBetaOnboardingComplete(false);
+      sessionStorage.removeItem('beta_onboarding_in_progress');
 
       // Show appropriate error message
       if (message.includes('already registered') || message.includes('already been registered')) {
@@ -257,6 +283,24 @@ export const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col selection:bg-[#E85D4F]/30">
+      {/* Beta onboarding overlay (blocks LoginRoute redirect + fades into app) */}
+      <BetaLoadingScreen
+        isOpen={showBetaOnboarding}
+        complete={betaOnboardingComplete}
+        onComplete={() => {
+          // Mark per-user "seen" so we don't show beta onboarding repeatedly in-app.
+          if (betaOnboardingUserId) {
+            localStorage.setItem(`beta_loading_seen:${betaOnboardingUserId}`, 'true');
+          }
+          // Clear flags and enter the app
+          sessionStorage.removeItem('beta_onboarding_in_progress');
+          sessionStorage.removeItem('beta_show_loading');
+          setShowBetaOnboarding(false);
+          setBetaOnboardingComplete(false);
+          navigate('/app');
+        }}
+      />
+
       {/* Header */}
       <nav className="max-w-[1200px] w-full mx-auto px-6 py-10 flex justify-between items-center">
         <button
