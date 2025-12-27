@@ -222,6 +222,13 @@ export const AuthPage = () => {
         // No plan specified or beta signup - show regular celebration (email verification)
         await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
         if (isMountedRef.current) {
+          // If beta user and has session, mark for loading screen
+          if (isBeta && signUpData?.session) {
+            sessionStorage.setItem('beta_show_loading', 'true');
+            // Navigate to app to trigger loading screen
+            navigate('/app');
+            return;
+          }
           setShowCelebration(true);
         }
       }

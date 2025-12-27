@@ -70,6 +70,18 @@ const AppLayout = () => {
   useEffect(() => {
     if (loading || entitlementLoading || !user) return;
     
+    // Check for sessionStorage flag first (set after terms acceptance)
+    // This takes priority and works even if isBeta isn't ready yet
+    const shouldShowLoading = sessionStorage.getItem('beta_show_loading') === 'true';
+    
+    if (shouldShowLoading) {
+      // Clear the flag immediately to prevent showing again
+      sessionStorage.removeItem('beta_show_loading');
+      setShowBetaLoading(true);
+      return;
+    }
+    
+    // Fallback: check if user is beta and hasn't seen loading screen
     if (isBeta) {
       const hasSeenLoading = localStorage.getItem('beta_loading_seen') === 'true';
       if (!hasSeenLoading) {

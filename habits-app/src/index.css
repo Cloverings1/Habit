@@ -1057,7 +1057,7 @@ input[type="text"]::placeholder {
 
 /* Liquid Glass Modal Styles */
 .liquid-glass-backdrop {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
 }
@@ -1067,7 +1067,7 @@ html.light .liquid-glass-backdrop {
 }
 
 .liquid-glass-modal {
-  background: rgba(28, 28, 30, 0.50);
+  background: rgba(28, 28, 30, 0.35);
   backdrop-filter: blur(80px) saturate(180%);
   -webkit-backdrop-filter: blur(80px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
