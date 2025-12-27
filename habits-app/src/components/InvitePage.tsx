@@ -174,7 +174,7 @@ export const InvitePage = () => {
           
           <p className="text-[#A0A0A0] text-[16px] leading-relaxed mb-10">
             A calm interface for tracking what matters.<br />
-            No streaks to protect. No guilt. Just progress.
+            Simply progress.
           </p>
 
           <div className="space-y-4">

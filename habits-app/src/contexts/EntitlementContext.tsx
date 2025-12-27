@@ -9,9 +9,10 @@ interface EntitlementContextType {
   status: EntitlementStatus;
   isPro: boolean;
   isFounding: boolean;
+  isBeta: boolean;
   isTrialing: boolean;
   trialState: TrialState | null;
-  hasAccess: boolean; // True if Pro active/trialing or Founding active
+  hasAccess: boolean; // True if Pro active/trialing or Founding active or Beta
   loading: boolean;
 }
 
@@ -112,6 +113,7 @@ export const EntitlementProvider = ({ children }: { children: ReactNode }) => {
   const status: EntitlementStatus = entitlement?.status || 'none';
   const isPro = plan === 'pro';
   const isFounding = plan === 'founding';
+  const isBeta = user?.user_metadata?.beta_access === true;
   const isTrialing = status === 'trialing';
 
   // Calculate trial state for Pro users
@@ -180,6 +182,7 @@ export const EntitlementProvider = ({ children }: { children: ReactNode }) => {
         status,
         isPro,
         isFounding,
+        isBeta,
         isTrialing,
         trialState,
         hasAccess,

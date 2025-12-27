@@ -47,7 +47,7 @@ export const Settings = () => {
     getAvatarUrl,
   } = useAuth();
   const { isTrialing, trialState, status, currentPeriodEnd, cancelAtPeriodEnd, openPortal } = useSubscription();
-  const { hasAccess, isFounding, isPro } = useEntitlement();
+  const { hasAccess, isFounding, isPro, isBeta } = useEntitlement();
   const hasPremiumAccess = hasAccess;
   const navigate = useNavigate();
 
@@ -304,9 +304,20 @@ export const Settings = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {isFounding ? 'Founders Edition' : isPro || isTrialing ? 'Pro Plan' : 'No Plan'}
+                  {isFounding ? 'Founders Edition' : isBeta ? 'Beta Access' : isPro || isTrialing ? 'Pro Plan' : 'No Plan'}
                 </span>
-                {(hasPremiumAccess || isTrialing) && (
+                {isBeta && !isFounding && !isPro && (
+                  <span
+                    className="text-[11px] px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: 'rgba(6, 182, 212, 0.15)',
+                      color: '#22d3ee',
+                    }}
+                  >
+                    Beta
+                  </span>
+                )}
+                {(hasPremiumAccess || isTrialing) && !isBeta && (
                   <span
                     className="text-[11px] px-2 py-0.5 rounded-full"
                     style={{
@@ -348,6 +359,17 @@ export const Settings = () => {
                 }}
               >
                 Lifetime Access
+              </span>
+            ) : isBeta ? (
+              <span
+                className="text-[13px] px-3 py-1.5 rounded-full"
+                style={{
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  border: '1px solid rgba(6, 182, 212, 0.2)',
+                  color: '#22d3ee',
+                }}
+              >
+                Full Access
               </span>
             ) : isPro || isTrialing ? (
               <button
