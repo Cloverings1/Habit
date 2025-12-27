@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { EntitlementProvider } from './contexts/EntitlementContext';
@@ -59,6 +59,7 @@ const AppLayout = () => {
   const { user, loading } = useAuth();
   const { isBeta, loading: entitlementLoading } = useEntitlement();
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -155,21 +156,18 @@ const AppLayout = () => {
 
       {/* Floating Feedback Button */}
       <motion.button
+        type="button"
         onClick={() => setShowFeedback(true)}
-        className="fixed bottom-24 right-4 w-12 h-12 rounded-full flex items-center justify-center z-40 shadow-lg"
-        style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-        whileHover={{ scale: 1.05, background: 'rgba(255, 255, 255, 0.12)' }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="feedback-fab fixed bottom-24 right-4 w-12 h-12 rounded-full flex items-center justify-center z-40"
+        whileHover={reduceMotion ? undefined : { scale: 1.05 }}
+        whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+        animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         title="Send feedback"
+        aria-label="Send feedback"
       >
-        <MessageCircle size={20} style={{ color: 'var(--text-muted)' }} />
+        <MessageCircle size={20} className="feedback-fab-icon" />
       </motion.button>
 
       {/* Feedback Modal */}

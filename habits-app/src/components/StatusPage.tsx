@@ -188,21 +188,18 @@ export const StatusPage = () => {
 
       {/* Floating feedback button (optional + lightweight) */}
       <motion.button
+        type="button"
         onClick={() => setShowFeedback(true)}
-        className="fixed bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center z-40 shadow-lg"
-        style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-        whileHover={{ scale: 1.05, background: 'rgba(255, 255, 255, 0.12)' }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="feedback-fab fixed bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center z-40"
+        whileHover={reduceMotion ? undefined : { scale: 1.05 }}
+        whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+        animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         transition={{ delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
         title="Report an issue"
+        aria-label="Report an issue"
       >
-        <MessageCircle size={20} style={{ color: '#A0A0A0' }} />
+        <MessageCircle size={20} className="feedback-fab-icon" />
       </motion.button>
 
       <FeedbackModal
