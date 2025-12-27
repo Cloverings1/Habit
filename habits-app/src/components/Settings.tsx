@@ -228,8 +228,8 @@ export const Settings = () => {
     setSigningOut(true);
     try {
       await signOut();
-      // Navigate immediately - auth state change will handle the rest
-      navigate('/login');
+      // Don't navigate manually - let auth state change trigger redirect
+      // AppLayout's useEffect will navigate to /login when user becomes null
     } catch (error) {
       console.error('Sign out error:', error);
       showStatus('error', 'Failed to sign out');
