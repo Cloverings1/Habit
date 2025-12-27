@@ -139,6 +139,14 @@ const AppLayout = () => {
           </Routes>
         </AnimatePresence>
       </main>
+
+      {/* App version (subtle) */}
+      <div
+        className="fixed left-4 bottom-[88px] z-30 select-none pointer-events-none text-[10px] tracking-[0.16em] uppercase"
+        style={{ color: 'rgba(255, 255, 255, 0.22)' }}
+      >
+        v{__APP_VERSION__}
+      </div>
       
       {/* Hide navigation when viewing habit details */}
       <Routes>
