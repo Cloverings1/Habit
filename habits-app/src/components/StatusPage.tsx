@@ -91,6 +91,7 @@ export const StatusPage = () => {
 
   const { worstStatus } = getCurrentStatus();
   const [showFeedback, setShowFeedback] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const summary =
     worstStatus === 0
