@@ -302,7 +302,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown', allowA
 
                       {/* Title Input */}
                       <div className="mb-4">
-                        <label className="text-[12px] font-medium block mb-2 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        <label className="text-[12px] font-medium block mb-2 uppercase tracking-wide text-center" style={{ color: 'var(--text-muted)' }}>
                           Summary
                         </label>
                         <input
@@ -310,7 +310,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown', allowA
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="Brief summary of your request"
-                          className="w-full px-5 py-4 rounded-xl text-[15px] outline-none transition-all focus:ring-2 focus:ring-white/10"
+                          className="w-full px-5 py-4 rounded-xl text-[15px] text-center outline-none transition-all focus:ring-2 focus:ring-white/10"
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -323,7 +323,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown', allowA
 
                       {/* Description Input */}
                       <div className="mb-6">
-                        <label className="text-[12px] font-medium block mb-2 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        <label className="text-[12px] font-medium block mb-2 uppercase tracking-wide text-center" style={{ color: 'var(--text-muted)' }}>
                           Description
                         </label>
                         <textarea
@@ -337,7 +337,7 @@ export const FeedbackModal = ({ isOpen, onClose, currentPage = 'unknown', allowA
                               : "Share your thoughts and suggestions..."
                           }
                           rows={5}
-                          className="w-full px-5 py-4 rounded-xl text-[15px] resize-none outline-none transition-all focus:ring-2 focus:ring-white/10"
+                          className="w-full px-5 py-4 rounded-xl text-[15px] text-center resize-none outline-none transition-all focus:ring-2 focus:ring-white/10"
                           style={{
                             background: 'rgba(255, 255, 255, 0.04)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
