@@ -103,8 +103,8 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   return (
     <div className="main-content">
       {/* Header with greeting, progress, and streak */}
-      <header className="flex items-center justify-between mb-6">
-        <div className="flex-1">
+      <header className="flex items-center gap-4 mb-6 h-12">
+        <div className="shrink-0">
           <motion.div
             className="flex items-center gap-3"
             initial={{ opacity: 0, x: -10 }}
@@ -184,7 +184,12 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Daily Verse - fill space */}
+        <div className="flex-1 h-full min-w-0">
+          <DailyVerse userSeed={user?.id ?? user?.email ?? 'global'} minimal />
+        </div>
+
+        <div className="shrink-0 flex items-center gap-3">
           {/* Calendar shortcut - 1 tap access */}
           {completedDays.length > 0 && onNavigate && (
             <motion.button
@@ -224,9 +229,6 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
           )}
         </div>
       </header>
-
-      {/* Daily Verse (rotates every day) */}
-      <DailyVerse userSeed={user?.id ?? user?.email ?? 'global'} />
 
       {/* Trial Banner - shows during active trial */}
       {isTrialing && (

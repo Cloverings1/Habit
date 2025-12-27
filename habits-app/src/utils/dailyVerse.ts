@@ -4,9 +4,9 @@ export type PrayerVerse = {
   text: string;
 };
 
-// Import repo-root PRAYERS.MD as raw text (Vite `?raw`)
+// Import PRAYERS.MD as raw text (Vite `?raw`)
 // NOTE: This path is relative to `habits-app/src/utils/`.
-import prayersRaw from '../../../PRAYERS.MD?raw';
+import prayersRaw from '../PRAYERS.MD?raw';
 
 function formatLocalDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -83,36 +83,44 @@ type StoredDailyVerse = {
 };
 
 export function getDailyPrayerVerse(options?: { userSeed?: string }): PrayerVerse | null {
-  const verses = parsePrayerVerses(prayersRaw);
-  if (verses.length === 0) return null;
-
-  const todayKey = formatLocalDayKey(new Date());
-
-  // Try cache first
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as StoredDailyVerse;
-      if (parsed?.dayKey === todayKey && Number.isFinite(parsed.index)) {
-        const idx = ((parsed.index % verses.length) + verses.length) % verses.length;
-        return verses[idx] ?? null;
-      }
+    const verses = parsePrayerVerses(prayersRaw);
+    if (verses.length === 0) {
+      console.warn('[DailyVerse] No verses parsed from PRAYERS.MD');
+      return null;
     }
-  } catch {
-    // ignore storage/JSON errors
+
+    const todayKey = formatLocalDayKey(new Date());
+
+    // Try cache first
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as StoredDailyVerse;
+        if (parsed?.dayKey === todayKey && Number.isFinite(parsed.index)) {
+          const idx = ((parsed.index % verses.length) + verses.length) % verses.length;
+          return verses[idx] ?? null;
+        }
+      }
+    } catch {
+      // ignore storage/JSON errors
+    }
+
+    // Choose a deterministic verse per day (optionally per-user) and store it.
+    const seed = `${todayKey}|${options?.userSeed ?? 'global'}`;
+    const index = hashStringToInt(seed) % verses.length;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dayKey: todayKey, index } satisfies StoredDailyVerse));
+    } catch {
+      // ignore storage errors
+    }
+
+    return verses[index] ?? null;
+  } catch (error) {
+    console.error('[DailyVerse] Error loading verses:', error);
+    return null;
   }
-
-  // Choose a deterministic verse per day (optionally per-user) and store it.
-  const seed = `${todayKey}|${options?.userSeed ?? 'global'}`;
-  const index = hashStringToInt(seed) % verses.length;
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ dayKey: todayKey, index } satisfies StoredDailyVerse));
-  } catch {
-    // ignore storage errors
-  }
-
-  return verses[index] ?? null;
 }
 
 

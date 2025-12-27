@@ -4,9 +4,10 @@ import { getDailyPrayerVerse, type PrayerVerse } from '../utils/dailyVerse';
 
 type DailyVerseProps = {
   userSeed?: string;
+  minimal?: boolean;
 };
 
-export function DailyVerse({ userSeed }: DailyVerseProps) {
+export function DailyVerse({ userSeed, minimal = false }: DailyVerseProps) {
   const [verse, setVerse] = useState<PrayerVerse | null>(null);
 
   // Memoize seed so it doesn't thrash state.
@@ -18,6 +19,38 @@ export function DailyVerse({ userSeed }: DailyVerseProps) {
   }, [seed]);
 
   if (!verse) return null;
+
+  if (minimal) {
+    return (
+      <motion.div
+        className="w-full h-full flex flex-col justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <div
+          className="px-4 py-2.5 rounded-xl w-full h-full flex flex-col justify-center items-center"
+          style={{
+            background: 'rgba(139, 92, 246, 0.03)',
+            border: '1px solid rgba(180, 130, 70, 0.25)',
+          }}
+        >
+          <p
+            className="text-[13px] leading-snug text-center px-2"
+            style={{
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic',
+            }}
+          >
+            {verse.text}
+          </p>
+          <p className="text-[10px] mt-0.5 text-center" style={{ color: 'var(--text-muted)' }}>
+            {verse.reference}
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
