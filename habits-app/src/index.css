@@ -1067,7 +1067,7 @@ html.light .liquid-glass-backdrop {
 }
 
 .liquid-glass-modal {
-  background: rgba(28, 28, 30, 0.72);
+  background: rgba(28, 28, 30, 0.50);
   backdrop-filter: blur(80px) saturate(180%);
   -webkit-backdrop-filter: blur(80px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1079,7 +1079,7 @@ html.light .liquid-glass-backdrop {
 }
 
 html.light .liquid-glass-modal {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.50);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
     0 0 0 0.5px rgba(255, 255, 255, 0.8) inset,
