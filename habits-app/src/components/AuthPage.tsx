@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { createProTrialCheckout, createFoundingCheckout } from '../utils/stripe';
 import { useAuth } from '../contexts/AuthContext';
-import { TermsModal } from './TermsModal';
 import { FoundingCelebration } from './FoundingCelebration';
 import { BetaLoadingScreen } from './BetaLoadingScreen';
 import { useDiamondSpots } from '../hooks/useDiamondSpots';
@@ -22,7 +21,7 @@ export const AuthPage = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -134,13 +133,16 @@ export const AuthPage = () => {
         setLoading(false);
       }
     } else {
-      // Signup flow - show terms first
-      setShowTermsModal(true);
+      // Signup flow - check terms acceptance
+      if (!termsAccepted) {
+        setError('Please accept the Terms of Service to continue');
+        return;
+      }
+      await handleSignup();
     }
   };
 
-  const handleTermsAccept = async () => {
-    setShowTermsModal(false);
+  const handleSignup = async () => {
     // We'll show a dedicated beta onboarding screen for beta signups.
     // For all other flows, keep the existing success/loading modal.
     setLoadingProgress(0);
@@ -277,10 +279,6 @@ export const AuthPage = () => {
     }
   };
 
-  const handleTermsDecline = () => {
-    setShowTermsModal(false);
-  };
-
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col selection:bg-[#E85D4F]/30">
       {/* Beta onboarding overlay (blocks LoginRoute redirect + fades into app) */}
@@ -386,6 +384,53 @@ export const AuthPage = () => {
             />
           </div>
 
+          {/* Terms checkbox - only show for signup */}
+          {!isLogin && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="pt-2"
+            >
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
+                    style={{
+                      borderColor: termsAccepted ? '#E85D4F' : '#3A3A3A',
+                      backgroundColor: termsAccepted ? '#E85D4F' : 'transparent',
+                    }}
+                  >
+                    {termsAccepted && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                        <path d="M5 12L10 17L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[13px] text-[#6F6F6F] group-hover:text-[#A0A0A0] transition-colors">
+                  I agree to the{' '}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[#E85D4F] hover:text-[#F5A89D] underline transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </span>
+              </label>
+            </motion.div>
+          )}
+
           {error && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -433,13 +478,6 @@ export const AuthPage = () => {
           </div>
         </div>
       </footer>
-
-      {/* Terms Modal for Signup */}
-      <TermsModal
-        isOpen={showTermsModal}
-        onAccept={handleTermsAccept}
-        onDecline={handleTermsDecline}
-      />
 
       {/* Success Animation Modal */}
       <AnimatePresence>
@@ -679,6 +717,7 @@ export const AuthPage = () => {
                       setEmail('');
                       setPassword('');
                       setName('');
+                      setTermsAccepted(false);
                     }}
                     className="w-full py-4 rounded-xl text-[15px] font-medium transition-all"
                     style={{
@@ -707,6 +746,7 @@ export const AuthPage = () => {
           setEmail('');
           setPassword('');
           setName('');
+          setTermsAccepted(false);
         }}
       />
     </div>
