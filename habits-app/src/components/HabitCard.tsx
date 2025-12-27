@@ -1,8 +1,13 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import type { Habit } from '../types';
 import { useHabits } from '../contexts/HabitsContext';
 import { getHabitStreak } from '../utils/dateUtils';
+
+import { useNavigate } from 'react-router-dom';
+import { BarChart2, Pencil } from 'lucide-react';
+import { useMemo } from 'react';
+import { getWeekDays, formatDate } from '../utils/dateUtils';
 
 const LONG_PRESS_DURATION = 1500; // 1.5 seconds
 const LONG_PRESS_VISUAL_DELAY = 150; // Only show progress bar after this threshold
@@ -17,6 +22,7 @@ interface HabitCardProps {
 }
 
 export const HabitCard = ({ habit, index, selectedDate, onEdit, onPaywallTrigger, hasAccess = true }: HabitCardProps) => {
+  const navigate = useNavigate();
   const { isCompleted, toggleCompletion, completedDays } = useHabits();
   const completed = isCompleted(habit.id, selectedDate);
   const [isPending, setIsPending] = useState(false);
@@ -25,8 +31,26 @@ export const HabitCard = ({ habit, index, selectedDate, onEdit, onPaywallTrigger
   const cardControls = useAnimation();
   const checkmarkControls = useAnimation();
 
+  // Ensure the card becomes visible on mount. Without this, `initial` sticks
+  // because we use animation controls (`animate={cardControls}`).
+  useEffect(() => {
+    cardControls.start({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.2,
+        delay: index * 0.03,
+        ease: [0.32, 0.72, 0, 1],
+      },
+    });
+  }, [cardControls, index]);
+
   // Calculate streak for this habit
   const streak = getHabitStreak(habit.id, completedDays);
+  
+  // Get days for the current view's week to show mini-heatmap
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
 
   // Long press state
   const [isLongPressing, setIsLongPressing] = useState(false);
@@ -102,6 +126,12 @@ export const HabitCard = ({ habit, index, selectedDate, onEdit, onPaywallTrigger
 
   const handlePointerLeave = () => {
     clearLongPress();
+  };
+
+  // Navigate to analytics on habit name click
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/app/habit/${habit.id}`);
   };
 
   const handleClick = async () => {
@@ -235,36 +265,94 @@ export const HabitCard = ({ habit, index, selectedDate, onEdit, onPaywallTrigger
       </AnimatePresence>
 
       {/* Left side: Habit name + streak */}
-      <div className="flex flex-col gap-0.5 relative z-10">
-        <span
-          className="text-[16px] font-medium"
-          style={{
-            color: completed ? 'var(--text-muted)' : 'var(--text-primary)',
-            transition: 'color 0.2s ease',
-          }}
-        >
-          {habit.name}
-        </span>
+      <div className="flex flex-col gap-1.5 relative z-10">
+        <div className="flex items-center gap-2 group">
+          <span
+            onClick={handleNameClick}
+            className="text-[16px] font-medium hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+            style={{
+              color: completed ? 'var(--text-muted)' : 'var(--text-primary)',
+              transition: 'color 0.2s ease',
+            }}
+          >
+            {habit.name}
+            <BarChart2 
+              size={14} 
+              className="opacity-0 group-hover:opacity-50 transition-opacity" 
+              style={{ color: 'var(--text-muted)' }}
+            />
+          </span>
+        </div>
 
-        {/* Streak indicator - only show if streak >= 2 */}
-        <AnimatePresence>
-          {streak >= 2 && (
-            <motion.span
-              className="text-[11px] font-medium"
-              style={{ color: habit.color }}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 0.8, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2 }}
-            >
-              {streak} day streak
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {/* Mini Heatmap & Streak */}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1">
+            {weekDays.map((date, i) => {
+              const dateStr = formatDate(date);
+              const isDayCompleted = completedDays.some(c => c.habitId === habit.id && c.date === dateStr);
+              return (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-[2px] transition-all duration-300"
+                  style={{
+                    backgroundColor: isDayCompleted ? habit.color : 'rgba(255,255,255,0.1)',
+                    opacity: isDayCompleted ? 1 : 0.3,
+                    transform: isDayCompleted ? 'scale(1)' : 'scale(0.8)'
+                  }}
+                  title={formatDate(date)}
+                />
+              );
+            })}
+          </div>
+
+          {/* Streak indicator - only show if streak >= 2 */}
+          <AnimatePresence>
+            {streak >= 2 && (
+              <motion.span
+                className="text-[11px] font-medium"
+                style={{ color: habit.color }}
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 0.8, x: 0 }}
+                exit={{ opacity: 0, x: -4 }}
+                transition={{ duration: 0.2 }}
+              >
+                {streak} day streak
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Right side: Completion indicator with checkmark */}
-      <div className="relative">
+      {/* Right side: Edit + completion indicator */}
+      <div className="relative z-10 flex items-center gap-3">
+        {onEdit && (
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              clearLongPress();
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              clearLongPress();
+              onEdit(habit);
+            }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              color: 'var(--text-muted)',
+            }}
+            aria-label={`Edit habit ${habit.name}`}
+          >
+            <Pencil size={12} />
+            <span>Edit</span>
+          </button>
+        )}
+
         {/* Outer glow ring on completion */}
         <AnimatePresence>
           {justCompleted && (

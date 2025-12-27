@@ -10,6 +10,7 @@ import { HabitCard } from './HabitCard';
 import { TrialBanner } from './TrialBanner';
 import { PaywallModal } from './PaywallModal';
 import { MicroConfetti } from './MicroConfetti';
+import { GlobalConsistency } from './Analytics/GlobalConsistency';
 import { formatDate } from '../utils/dateUtils';
 import type { Habit } from '../types';
 
@@ -282,44 +283,53 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               </h2>
             </motion.div>
 
-            {/* Habits list - full width */}
-            <div className="w-full relative py-2">
-              {habits.map((habit, index) => (
-                <HabitCard
-                  key={habit.id}
-                  habit={habit}
-                  index={index}
-                  selectedDate={selectedDate}
-                  onEdit={setEditingHabit}
-                  hasAccess={hasAccess}
-                  onPaywallTrigger={handlePaywallTrigger}
-                />
-              ))}
-            </div>
+            {/* Habits list - 2 column layout on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
+              <div className="flex flex-col">
+                <div className="w-full relative py-2">
+                  {habits.map((habit, index) => (
+                    <HabitCard
+                      key={habit.id}
+                      habit={habit}
+                      index={index}
+                      selectedDate={selectedDate}
+                      onEdit={setEditingHabit}
+                      hasAccess={hasAccess}
+                      onPaywallTrigger={handlePaywallTrigger}
+                    />
+                  ))}
+                </div>
 
-            {/* Add another habit button - full width */}
-            <motion.button
-              onClick={handleAddHabitClick}
-              className="w-full mt-4 py-3 rounded-xl text-[14px] font-medium flex items-center justify-center gap-2"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                color: 'var(--text-muted)',
-                border: '1px dashed rgba(255, 255, 255, 0.1)',
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              whileHover={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5V19M5 12H19" />
-              </svg>
-              Add habit
-            </motion.button>
+                {/* Add another habit button - full width */}
+                <motion.button
+                  onClick={handleAddHabitClick}
+                  className="w-full mt-4 py-3 rounded-xl text-[14px] font-medium flex items-center justify-center gap-2"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    color: 'var(--text-muted)',
+                    border: '1px dashed rgba(255, 255, 255, 0.1)',
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5V19M5 12H19" />
+                  </svg>
+                  Add habit
+                </motion.button>
+              </div>
+
+              {/* Global Stats - Right column on desktop, stacked below on mobile */}
+              <div className="lg:sticky lg:top-8 mt-8 lg:mt-0">
+                <GlobalConsistency />
+              </div>
+            </div>
 
           </>
         )}

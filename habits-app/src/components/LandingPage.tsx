@@ -24,6 +24,21 @@ export const LandingPage = () => {
 
   const pricingPlans = [
     {
+      name: 'Beta',
+      microtext: 'Limited Access',
+      price: '$0',
+      period: '/free',
+      description: 'Full access for friends & family.',
+      features: [
+        'Unlimited habits',
+        'Progress over time',
+        'Sync across devices',
+        'Private by default'
+      ],
+      buttonText: 'Join Beta',
+      tier: 'beta' as const
+    },
+    {
       name: 'Pro',
       microtext: 'Most people start here',
       price: '$9',
@@ -37,7 +52,8 @@ export const LandingPage = () => {
         'Private by default'
       ],
       buttonText: 'Start free trial',
-      tier: 'pro' as const
+      tier: 'pro' as const,
+      disabled: true
     },
     {
       name: 'Founding',
@@ -52,15 +68,16 @@ export const LandingPage = () => {
         'Direct line to the founder'
       ],
       buttonText: spotsRemaining > 0 ? 'Become a founding member' : 'Founding access closed',
-      tier: 'diamond' as const
+      tier: 'diamond' as const,
+      disabled: true
     }
   ];
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F5] selection:bg-[#E85D4F]/30 overflow-x-hidden">
       <div className="flex justify-center pt-6">
-        <div className="px-3 py-1 rounded-full bg-[#F5F5F5]/5 border border-[rgba(255,255,255,0.08)] backdrop-blur-sm">
-          <span className="text-[11px] font-medium tracking-widest uppercase text-[#A0A0A0]">Private Beta v1.2</span>
+        <div className="px-3 py-1 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 backdrop-blur-sm">
+          <span className="text-[11px] font-medium tracking-widest uppercase text-[#A78BFA]">Private Beta v1.3</span>
         </div>
       </div>
 
@@ -202,11 +219,13 @@ export const LandingPage = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-[800px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-[1200px]">
           {pricingPlans.map((plan, index) => {
             const isFounding = plan.tier === 'diamond';
             const isPro = plan.tier === 'pro';
+            const isBeta = plan.tier === 'beta';
             const hasTrialCopy = 'trialCopy' in plan && plan.trialCopy;
+            const isDisabled = 'disabled' in plan && plan.disabled;
 
             return (
               <motion.div
@@ -217,15 +236,15 @@ export const LandingPage = () => {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="relative"
               >
-                {/* Blue glow animation for founding card */}
-                {isFounding && (
+                {/* Purple glow animation for Beta card */}
+                {isBeta && (
                   <motion.div
                     className="absolute inset-0 rounded-[24px] sm:rounded-[28px] pointer-events-none"
                     animate={{
                       boxShadow: [
-                        '0 0 20px rgba(6, 182, 212, 0.2), inset 0 0 20px rgba(6, 182, 212, 0.1)',
-                        '0 0 40px rgba(6, 182, 212, 0.3), inset 0 0 30px rgba(6, 182, 212, 0.15)',
-                        '0 0 20px rgba(6, 182, 212, 0.2), inset 0 0 20px rgba(6, 182, 212, 0.1)',
+                        '0 0 20px rgba(139, 92, 246, 0.2), inset 0 0 20px rgba(139, 92, 246, 0.1)',
+                        '0 0 40px rgba(139, 92, 246, 0.3), inset 0 0 30px rgba(139, 92, 246, 0.15)',
+                        '0 0 20px rgba(139, 92, 246, 0.2), inset 0 0 20px rgba(139, 92, 246, 0.1)',
                       ],
                     }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -233,10 +252,10 @@ export const LandingPage = () => {
                 )}
 
                 <div
-                  className={`relative p-6 sm:p-8 rounded-[24px] sm:rounded-[28px] h-full flex flex-col ${isFounding ? 'pointer-events-none' : ''}`}
+                  className={`relative p-6 sm:p-8 rounded-[24px] sm:rounded-[28px] h-full flex flex-col ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
                   style={{
                     background: '#141414',
-                    border: isPro
+                    border: isPro || isBeta
                       ? '1px solid rgba(255, 255, 255, 0.08)'
                       : isFounding
                         ? '1px solid rgba(255, 255, 255, 0.08)'  // Matched to Pro for minimal look
@@ -316,13 +335,13 @@ export const LandingPage = () => {
                   {/* CTA Button */}
                   <button
                     onClick={() => {
-                      if (isFounding) return; // Founding card always disabled
+                      if (isDisabled) return;
                       navigate(`/login?mode=signup&plan=${plan.tier}`);
                     }}
-                    disabled={isFounding}
-                    className={`w-full py-3.5 px-6 rounded-full text-[14px] font-medium transition-all duration-200 ${isFounding ? 'cursor-not-allowed' : ''}`}
+                    disabled={isDisabled}
+                    className={`w-full py-3.5 px-6 rounded-full text-[14px] font-medium transition-all duration-200 ${isDisabled ? 'cursor-not-allowed' : ''}`}
                     style={
-                      isPro
+                      isBeta || isPro
                         ? {
                           background: '#F5F5F5',
                           color: '#0B0B0B',

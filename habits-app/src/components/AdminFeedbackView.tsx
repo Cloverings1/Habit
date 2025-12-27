@@ -7,7 +7,7 @@ interface FeedbackEntry {
   id: string;
   user_id: string;
   user_email: string;
-  type: 'feedback' | 'bug';
+  type: 'feedback' | 'bug' | 'feature';
   priority: 'fyi' | 'minor' | 'important' | 'critical';
   title: string | null;
   message: string;
@@ -42,6 +42,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
   feedback: 'Feedback',
   bug: 'Bug',
+  feature: 'Feature Request',
 };
 
 export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
@@ -52,7 +53,7 @@ export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
   const [savingNotes, setSavingNotes] = useState(false);
 
   // Filters
-  const [typeFilter, setTypeFilter] = useState<'all' | 'feedback' | 'bug'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'feedback' | 'bug' | 'feature'>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'fyi' | 'minor' | 'important' | 'critical'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | TicketStatus>('all');
 
@@ -157,6 +158,18 @@ export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
     }
   };
 
+  const getTypeBadgeStyle = (type: FeedbackEntry['type']) => {
+    switch (type) {
+      case 'bug':
+        return { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' };
+      case 'feature':
+        return { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' };
+      case 'feedback':
+      default:
+        return { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' };
+    }
+  };
+
   return (
     <div className="main-content">
       {/* Header */}
@@ -198,6 +211,7 @@ export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
           <option value="all">All Types</option>
           <option value="feedback">Feedback</option>
           <option value="bug">Bug</option>
+          <option value="feature">Feature Request</option>
         </select>
 
         {/* Priority Filter */}
@@ -282,8 +296,8 @@ export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
                       <span
                         className="text-[11px] px-2 py-0.5 rounded-full"
                         style={{
-                          background: entry.type === 'bug' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                          color: entry.type === 'bug' ? '#ef4444' : '#3b82f6',
+                          background: getTypeBadgeStyle(entry.type).bg,
+                          color: getTypeBadgeStyle(entry.type).color,
                         }}
                       >
                         {TYPE_LABELS[entry.type]}
@@ -370,8 +384,8 @@ export const AdminFeedbackView = ({ onBack }: AdminFeedbackViewProps) => {
                     <span
                       className="text-[11px] px-2 py-0.5 rounded-full"
                       style={{
-                        background: selectedEntry.type === 'bug' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                        color: selectedEntry.type === 'bug' ? '#ef4444' : '#3b82f6',
+                        background: getTypeBadgeStyle(selectedEntry.type).bg,
+                        color: getTypeBadgeStyle(selectedEntry.type).color,
                       }}
                     >
                       {TYPE_LABELS[selectedEntry.type]}

@@ -15,7 +15,7 @@ export const EditHabitModal = ({ isOpen, onClose, habit }: EditHabitModalProps) 
   const [selectedColor, setSelectedColor] = useState(HABIT_COLORS[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { updateHabit, removeHabit } = useHabits();
+  const { updateHabit, removeHabit, archiveHabit } = useHabits();
 
   // Sync form with habit when it changes
   useEffect(() => {
@@ -39,6 +39,20 @@ export const EditHabitModal = ({ isOpen, onClose, habit }: EditHabitModalProps) 
       onClose();
     } catch (error) {
       console.error('Failed to update habit:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!habit || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await archiveHabit(habit.id);
+      onClose();
+    } catch (error) {
+      console.error('Failed to archive habit:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -205,14 +219,27 @@ export const EditHabitModal = ({ isOpen, onClose, habit }: EditHabitModalProps) 
                 </motion.button>
               </motion.div>
 
-              {/* Delete Section */}
+              {/* Archive/Delete Section */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.35, duration: 0.3 }}
-                className="mt-6 pt-6"
+                className="mt-6 pt-6 space-y-3"
                 style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
               >
+                {/* Archive Button */}
+                <motion.button
+                  type="button"
+                  onClick={handleArchive}
+                  className="w-full py-2.5 text-[13px] font-medium rounded-lg transition-all"
+                  style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}
+                  whileHover={{ background: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-primary)' }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmitting}
+                >
+                  Archive habit
+                </motion.button>
+
                 <AnimatePresence mode="wait">
                   {!showDeleteConfirm ? (
                     <motion.button

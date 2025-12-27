@@ -3,10 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { createProTrialCheckout, createFoundingCheckout } from '../utils/stripe';
+import { useAuth } from '../contexts/AuthContext';
 import { TermsModal } from './TermsModal';
 import { FoundingCelebration } from './FoundingCelebration';
 import { useDiamondSpots } from '../hooks/useDiamondSpots';
 import { HABIT_COLORS } from '../types';
+
+const PENDING_CHECKOUT_PLAN_KEY = 'pending_checkout_plan';
+type PendingCheckoutPlan = 'pro' | 'founding';
 
 export const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -22,8 +26,11 @@ export const AuthPage = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showFoundingCelebration, setShowFoundingCelebration] = useState(false);
+  const [pendingCheckoutPlan, setPendingCheckoutPlan] = useState<PendingCheckoutPlan | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isMountedRef = useRef(true);
+  const postConfirmCheckoutStartedRef = useRef(false);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -34,6 +41,58 @@ export const AuthPage = () => {
 
   // Founding slots disabled - kept hook for future re-enablement
   useDiamondSpots();
+
+  const getCheckoutPlanFromUrlOrStorage = (): PendingCheckoutPlan | null => {
+    const plan = searchParams.get('plan') || localStorage.getItem(PENDING_CHECKOUT_PLAN_KEY);
+    return plan === 'pro' || plan === 'founding' ? plan : null;
+  };
+
+  const isPostConfirmFlow = (): boolean => {
+    const postConfirmParam = searchParams.get('post_confirm');
+    return postConfirmParam === '1' || postConfirmParam === 'true';
+  };
+
+  const startCheckout = async (plan: PendingCheckoutPlan) => {
+    // Prevent TrialGuard redirect during checkout redirect
+    sessionStorage.setItem('checkout_in_progress', 'true');
+    try {
+      if (plan === 'pro') {
+        await createProTrialCheckout();
+      } else {
+        await createFoundingCheckout();
+      }
+    } catch (checkoutError) {
+      // Clear flag if checkout fails - otherwise user gets stuck
+      sessionStorage.removeItem('checkout_in_progress');
+      throw checkoutError;
+    }
+  };
+
+  // If user lands here from email confirmation with a pending checkout plan,
+  // automatically continue checkout once session is available.
+  useEffect(() => {
+    if (!user) return;
+    if (!isPostConfirmFlow()) return;
+
+    const plan = getCheckoutPlanFromUrlOrStorage();
+    if (!plan) return;
+    if (postConfirmCheckoutStartedRef.current) return;
+    if (sessionStorage.getItem('checkout_in_progress') === 'true') return;
+
+    postConfirmCheckoutStartedRef.current = true;
+    localStorage.removeItem(PENDING_CHECKOUT_PLAN_KEY);
+
+    // Show lightweight loading state while redirecting
+    setLoading(true);
+    setError(null);
+
+    startCheckout(plan).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Checkout failed. Please try again.';
+      setLoading(false);
+      setError(message);
+      postConfirmCheckoutStartedRef.current = false;
+    });
+  }, [user, searchParams]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +107,15 @@ export const AuthPage = () => {
           password,
         });
         if (error) throw error;
+
+        // If user is signing in to continue a post-confirm checkout, start checkout instead of going to /app.
+        const plan = getCheckoutPlanFromUrlOrStorage();
+        if (plan && (isPostConfirmFlow() || localStorage.getItem(PENDING_CHECKOUT_PLAN_KEY))) {
+          localStorage.removeItem(PENDING_CHECKOUT_PLAN_KEY);
+          await startCheckout(plan);
+          return;
+        }
+
         navigate('/app');
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'An error occurred';
@@ -72,14 +140,16 @@ export const AuthPage = () => {
     setShowSuccess(true);
     setLoadingProgress(0);
     setError(null);
+    setPendingCheckoutPlan(null);
 
     // Get the plan parameter from URL upfront
     const planParam = searchParams.get('plan');
     const requiresCheckout = planParam === 'pro' || planParam === 'founding';
+    const isBeta = planParam === 'beta';
 
     // Animate the loading bar
     const startTime = Date.now();
-    const duration = requiresCheckout ? 800 : 1500; // Faster animation for checkout flows
+    const duration = (requiresCheckout || isBeta) ? 800 : 1500; // Faster animation for checkout/beta flows
 
     const animateProgress = () => {
       const elapsed = Date.now() - startTime;
@@ -91,20 +161,26 @@ export const AuthPage = () => {
         requestAnimationFrame(animateProgress);
       }
     };
-
+    
     requestAnimationFrame(animateProgress);
 
     try {
       // Step 1: Create the account
       console.log('📝 Creating account...');
-      const { error: signUpError } = await supabase.auth.signUp({
+      // Ensure the plan survives email confirmation redirect (and can resume checkout)
+      const emailRedirectUrl = new URL(`${window.location.origin}/login`);
+      emailRedirectUrl.searchParams.set('post_confirm', 'true');
+      if (planParam) emailRedirectUrl.searchParams.set('plan', planParam);
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: emailRedirectUrl.toString(),
           data: {
             full_name: name,
             display_name: name,
+            beta_access: isBeta ? true : undefined,
           },
         },
       });
@@ -115,53 +191,26 @@ export const AuthPage = () => {
       // Founding slots disabled for now
       const claimedFoundingSpot = false;
 
-      // Step 2: Handle checkout IMMEDIATELY (before auth state change redirects us)
-      // This is critical - we must redirect to Stripe BEFORE React Router redirects to /app
+      // Step 2: For checkout plans, either redirect immediately (if session exists),
+      // or show a clear "check your email to continue" message (if confirmations are enabled).
       if (requiresCheckout && !claimedFoundingSpot) {
-        console.log('💳 Initiating checkout immediately...');
+        const checkoutPlan: PendingCheckoutPlan = planParam as PendingCheckoutPlan;
 
-        // Set flag to prevent TrialGuard from interfering during checkout redirect
-        sessionStorage.setItem('checkout_in_progress', 'true');
-
-        // Wait for session to be available (with retries)
-        let session = null;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session) {
-            session = sessionData.session;
-            console.log('🔑 Session available on attempt', attempt + 1);
-            break;
-          }
-          console.log('⏳ Session not ready, attempt', attempt + 1);
-          await new Promise(resolve => setTimeout(resolve, 200));
+        // Email confirmations enabled => signUp returns user but NO session until verified
+        if (!signUpData?.session) {
+          localStorage.setItem(PENDING_CHECKOUT_PLAN_KEY, checkoutPlan);
+          setPendingCheckoutPlan(checkoutPlan);
+          setShowCelebration(true); // Switch modal to email-confirm UX
+          setLoadingProgress(100);
+          return;
         }
 
-        if (!session) {
-          throw new Error('Session not available. Please refresh and try again.');
-        }
-
-        // Initiate checkout - this does a full page redirect to Stripe
-        // which prevents React Router from redirecting to /app first
-        try {
-          if (planParam === 'pro') {
-            console.log('🚀 Redirecting to Pro trial checkout...');
-            await createProTrialCheckout();
-          } else if (planParam === 'founding') {
-            console.log('🚀 Redirecting to Founding checkout...');
-            await createFoundingCheckout();
-          }
-          // Note: createProTrialCheckout/createFoundingCheckout redirect the page,
-          // so code below this point won't execute for checkout flows
-        } catch (checkoutError) {
-          // Clear the checkout flag if checkout fails - otherwise user gets stuck
-          sessionStorage.removeItem('checkout_in_progress');
-          console.error('❌ Checkout initiation failed:', checkoutError);
-          throw checkoutError; // Re-throw to be caught by outer catch
-        }
+        // Confirmations disabled (or auto-confirm) => session exists, we can redirect to checkout now.
+        await startCheckout(checkoutPlan);
         return;
       }
 
-      // Step 3: For non-checkout flows (founding member claim or free signup)
+      // Step 3: For non-checkout flows (founding member claim, beta signup, or free signup)
       if (claimedFoundingSpot) {
         // Wait for animation to finish before showing celebration
         await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
@@ -170,10 +219,9 @@ export const AuthPage = () => {
           setShowFoundingCelebration(true);
         }
       } else {
-        // No plan specified - show regular celebration (email verification)
+        // No plan specified or beta signup - show regular celebration (email verification)
         await new Promise(resolve => setTimeout(resolve, Math.max(0, duration - (Date.now() - startTime))));
         if (isMountedRef.current) {
-          setShowSuccess(false);
           setShowCelebration(true);
         }
       }
@@ -188,8 +236,8 @@ export const AuthPage = () => {
       // Show appropriate error message
       if (message.includes('already registered') || message.includes('already been registered')) {
         setError('An account with this email already exists. Please sign in instead.');
-      } else if (message.includes('Checkout failed') || message.includes('Session not available')) {
-        setError(message);
+      } else if (message.includes('Email rate limit')) {
+        setError('Too many signup attempts. Please wait a moment and try again.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -528,8 +576,19 @@ export const AuthPage = () => {
                     transition={{ delay: 0.6 }}
                     className="text-[15px] text-[#A0A0A0] mb-8 leading-relaxed"
                   >
-                    Please check your email and verify<br />
-                    your account before signing in.
+                    {pendingCheckoutPlan
+                      ? (
+                        <>
+                          Please check your email and verify<br />
+                          your account to continue checkout.
+                        </>
+                      )
+                      : (
+                        <>
+                          Please check your email and verify<br />
+                          your account before signing in.
+                        </>
+                      )}
                   </motion.p>
 
                   {/* Email icon with pulse */}
@@ -578,7 +637,7 @@ export const AuthPage = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Go to Sign In
+                    {pendingCheckoutPlan ? 'Back to Sign In' : 'Go to Sign In'}
                   </motion.button>
                 </motion.div>
               )}

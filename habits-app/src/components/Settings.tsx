@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHabits } from '../contexts/HabitsContext';
+import type { Habit } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useEntitlement } from '../contexts/EntitlementContext';
 import { storage } from '../utils/storage';
 import { useNavigate } from 'react-router-dom';
+import { EditHabitModal } from './EditHabitModal';
 import { PaywallModal } from './PaywallModal';
 import { ConsistencyReport } from './ConsistencyReport';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { FeedbackModal } from './FeedbackModal';
 import { AdminFeedbackView } from './AdminFeedbackView';
-import { Lock, Camera, ChevronDown, Check, X, MessageCircle, Users } from 'lucide-react';
+import { Archive, Lock, Camera, ChevronDown, Check, X, MessageCircle, Users } from 'lucide-react';
 import { validateAvatarFile } from '../utils/avatarUtils';
 import { supabase } from '../utils/supabase';
 
@@ -33,7 +35,7 @@ interface FoundingUserInfo {
 const ADMIN_EMAIL = 'jonas@jonasinfocus.com';
 
 export const Settings = () => {
-  const { habits, userName, setUserName, removeHabit } = useHabits();
+  const { habits, userName, setUserName, archivedHabits, unarchiveHabit } = useHabits();
   const {
     signOut,
     user,
@@ -52,8 +54,10 @@ export const Settings = () => {
   // Existing state
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showConsistencyReport, setShowConsistencyReport] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // New state for profile updates
   const [editingEmail, setEditingEmail] = useState(false);
@@ -597,15 +601,86 @@ export const Settings = () => {
                   <span className="text-[15px]" style={{ color: 'var(--text-primary)' }}>{habit.name}</span>
                 </div>
                 <button
-                  onClick={() => removeHabit(habit.id)}
+                  onClick={() => setEditingHabit(habit)}
                   className="text-[12px] hover:opacity-70 transition-opacity"
-                  style={{ color: '#ef4444' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  Delete
+                  Edit
                 </button>
               </div>
             ))}
           </div>
+        </motion.section>
+      )}
+
+      {/* Archived Habits */}
+      {archivedHabits.length > 0 && (
+        <motion.section
+          className="mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center justify-between w-full mb-4 hover:opacity-70 transition-opacity"
+          >
+            <div className="flex items-center gap-2">
+              <Archive size={14} style={{ color: 'var(--text-muted)' }} />
+              <h2 className="text-[12px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                Archived Habits
+              </h2>
+            </div>
+            <ChevronDown
+              size={16}
+              style={{
+                color: 'var(--text-muted)',
+                transform: showArchived ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            />
+          </button>
+
+          <AnimatePresence>
+            {showArchived && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div>
+                  {archivedHabits.map((habit) => (
+                    <div
+                      key={habit.id}
+                      className="flex items-center justify-between py-4 border-b"
+                      style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <div className="flex items-center gap-3 opacity-60">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: habit.color }} />
+                        <span className="text-[15px]" style={{ color: 'var(--text-primary)' }}>{habit.name}</span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await unarchiveHabit(habit.id);
+                            showStatus('success', 'Habit restored');
+                          } catch (e) {
+                            showStatus('error', 'Failed to restore');
+                          }
+                        }}
+                        className="text-[12px] hover:opacity-100 transition-opacity"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.section>
       )}
 
@@ -894,6 +969,11 @@ export const Settings = () => {
       </motion.section>
 
       {/* Modals */}
+      <EditHabitModal
+        isOpen={!!editingHabit}
+        onClose={() => setEditingHabit(null)}
+        habit={editingHabit}
+      />
       <PaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}

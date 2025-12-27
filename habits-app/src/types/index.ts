@@ -52,6 +52,7 @@ export interface Habit {
   createdAt: string;
   recurrence: RecurrenceType;
   customDays?: CustomRecurrence;
+  archived?: boolean;
 }
 
 export interface CompletedDay {

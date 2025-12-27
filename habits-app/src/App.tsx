@@ -12,11 +12,12 @@ import { Calendar } from './components/Calendar';
 import { Stats } from './components/Stats';
 import { Settings } from './components/Settings';
 import { LandingPage } from './components/LandingPage';
+import { InvitePage } from './components/InvitePage';
 import { AuthPage } from './components/AuthPage';
 import { BillingReturnPage } from './components/BillingReturnPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { TermsPage } from './components/TermsPage';
-import { ChangelogPage } from './components/ChangelogPage';
+import { ReleaseNotesPage } from './components/ReleaseNotesPage';
 import { FeedbackModal } from './components/FeedbackModal';
 import { TrialGuard } from './components/TrialGuard';
 import { MaintenancePage } from './components/MaintenancePage';
@@ -26,6 +27,7 @@ import type { ViewType } from './types';
 
 // Set to true to enable maintenance mode
 const MAINTENANCE_MODE = false;
+const PENDING_CHECKOUT_PLAN_KEY = 'pending_checkout_plan';
 
 const VIEW_LABELS: Record<ViewType, string> = {
   home: 'Dashboard',
@@ -45,6 +47,8 @@ const pageVariants = {
     transition: { duration: 0.15 }
   },
 };
+
+import { HabitDetail } from './components/Analytics/HabitDetail';
 
 const AppLayout = () => {
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -80,18 +84,27 @@ const AppLayout = () => {
     <div className="app-layout">
       <main className="main-content">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            {renderView()}
-          </motion.div>
+          <Routes>
+            <Route path="/" element={
+              <motion.div
+                key={currentView}
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                {renderView()}
+              </motion.div>
+            } />
+            <Route path="habit/:id" element={<HabitDetail />} />
+          </Routes>
         </AnimatePresence>
       </main>
-      <Navigation currentView={currentView} onNavigate={setCurrentView} />
+      
+      {/* Hide navigation when viewing habit details */}
+      <Routes>
+        <Route path="/" element={<Navigation currentView={currentView} onNavigate={setCurrentView} />} />
+      </Routes>
 
       {/* Floating Feedback Button */}
       <motion.button
@@ -107,6 +120,7 @@ const AppLayout = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
+        title="Send feedback"
       >
         <MessageCircle size={20} style={{ color: 'var(--text-muted)' }} />
       </motion.button>
@@ -137,9 +151,26 @@ function LandingPageRoute() {
   return <LandingPage />;
 }
 
-function App() {
+function LoginRoute() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
+  const checkoutInProgress = sessionStorage.getItem('checkout_in_progress') === 'true';
+  const postConfirm = searchParams.get('post_confirm') === '1' || searchParams.get('post_confirm') === 'true';
+  const planFromUrl = searchParams.get('plan');
+  const planFromStorage = localStorage.getItem(PENDING_CHECKOUT_PLAN_KEY);
+  const plan = planFromUrl || planFromStorage;
+  const hasPendingCheckout = postConfirm && (plan === 'pro' || plan === 'founding');
+
+  // If user is authenticated and no pending checkout flow, send them into the app.
+  if (user && !checkoutInProgress && !hasPendingCheckout) {
+    return <Navigate to="/app" replace />;
+  }
+
+  return <AuthPage />;
+}
+
+function App() {
   // Maintenance mode - show maintenance page for all routes except /status
   if (MAINTENANCE_MODE) {
     return (
@@ -152,17 +183,6 @@ function App() {
 
   return (
     <ThemeProvider>
-      {/* Beta Badge */}
-      <div
-        className="fixed top-3 right-3 z-[100] px-2 py-0.5 rounded-full text-[9px] tracking-wider uppercase"
-        style={{
-          background: 'rgba(139, 92, 246, 0.12)',
-          color: 'rgba(139, 92, 246, 0.7)',
-          border: '1px solid rgba(139, 92, 246, 0.2)',
-        }}
-      >
-        beta
-      </div>
       <SubscriptionProvider>
         <EntitlementProvider>
           <HabitsProvider>
@@ -172,18 +192,18 @@ function App() {
                 element={<LandingPageRoute />}
               />
               <Route
+                path="/invite"
+                element={<InvitePage />}
+              />
+              <Route
                 path="/login"
-                element={
-                  // Don't redirect if checkout is in progress - let AuthPage complete the Stripe redirect
-                  user && sessionStorage.getItem('checkout_in_progress') !== 'true'
-                    ? <Navigate to="/app" replace />
-                    : <AuthPage />
-                }
+                element={<LoginRoute />}
               />
               <Route path="/billing/return" element={<BillingReturnPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
-              <Route path="/changelog" element={<ChangelogPage />} />
+              <Route path="/release-notes" element={<ReleaseNotesPage />} />
+              <Route path="/changelog" element={<Navigate to="/release-notes" replace />} />
               <Route path="/status" element={<StatusPage />} />
               <Route path="/app/*" element={
                 <TrialGuard>

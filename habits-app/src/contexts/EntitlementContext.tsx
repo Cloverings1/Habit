@@ -149,6 +149,11 @@ export const EntitlementProvider = ({ children }: { children: ReactNode }) => {
   // - Pro user with active status within billing period
   // - Pro user trialing and trial not expired
   const hasAccess = useMemo(() => {
+    // Check for beta access in user metadata
+    if (user?.user_metadata?.beta_access === true) {
+      return true;
+    }
+
     if (isFounding && status === 'active') {
       return true;
     }
@@ -165,7 +170,7 @@ export const EntitlementProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return false;
-  }, [isFounding, isPro, status, isTrialing, trialState, entitlement?.current_period_ends_at]);
+  }, [user, isFounding, isPro, status, isTrialing, trialState, entitlement?.current_period_ends_at]);
 
   return (
     <EntitlementContext.Provider

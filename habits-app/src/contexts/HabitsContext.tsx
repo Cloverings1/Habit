@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import type { Habit, CompletedDay, RecurrenceType, CustomRecurrence } from '../types';
 import { getNextColor } from '../types';
 import { supabase } from '../utils/supabase';
 import { useAuth } from './AuthContext';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, parseDate } from '../utils/dateUtils';
 import { storage } from '../utils/storage';
 
 // Capitalize first letter of a name
@@ -12,14 +12,23 @@ const capitalizeFirstLetter = (name: string): string => {
   return name.charAt(0).toUpperCase() + name.slice(1);
 };
 
+// Performance: cap initial completions load to a bounded window (still covers all UI surfaces that
+// render "recent history" like week view, calendar (last 12 months), and heatmaps).
+const INITIAL_COMPLETIONS_WINDOW_DAYS = 400;
+const COMPLETIONS_PAGE_SIZE = 1000;
+const COMPLETIONS_MAX_PAGES = 50; // Safety cap (50k rows) to avoid runaway loads
+
 interface HabitsContextType {
-  habits: Habit[];
+  habits: Habit[]; // Active habits
+  archivedHabits: Habit[]; // Archived habits
   completedDays: CompletedDay[];
   userName: string;
   loading: boolean;
   addHabit: (name: string, color?: string, recurrence?: RecurrenceType, customDays?: CustomRecurrence) => Promise<void>;
   removeHabit: (id: string) => Promise<void>;
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
+  archiveHabit: (id: string) => Promise<void>;
+  unarchiveHabit: (id: string) => Promise<void>;
   toggleCompletion: (habitId: string, date?: Date) => Promise<void>;
   isCompleted: (habitId: string, date: Date) => boolean;
   getCompletionsForDate: (date: Date) => CompletedDay[];
@@ -33,17 +42,21 @@ const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
 
 export const HabitsProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [allHabits, setAllHabits] = useState<Habit[]>([]);
   const [completedDays, setCompletedDays] = useState<CompletedDay[]>([]);
   const [userName, setUserNameState] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  // Derived state
+  const habits = useMemo(() => allHabits.filter(h => !h.archived), [allHabits]);
+  const archivedHabits = useMemo(() => allHabits.filter(h => h.archived), [allHabits]);
 
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
       const { data: habitsData, error: habitsError } = await supabase
         .from('habits')
-        .select('*')
+        .select('id,name,color,created_at,frequency,custom_days,archived')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
@@ -56,23 +69,52 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
         createdAt: h.created_at,
         recurrence: h.frequency as RecurrenceType,
         customDays: h.custom_days,
+        archived: h.archived || false,
       }));
 
-      setHabits(formattedHabits);
+      setAllHabits(formattedHabits);
 
-      const { data: completionsData, error: completionsError } = await supabase
-        .from('completions')
-        .select('*')
-        .eq('user_id', user.id);
+      // Fetch completions in pages, and only for a bounded recent window.
+      // This avoids unbounded reads and also works around PostgREST max_rows caps.
+      const todayAnchor = parseDate(formatDate(new Date()));
+      todayAnchor.setUTCDate(todayAnchor.getUTCDate() - INITIAL_COMPLETIONS_WINDOW_DAYS);
+      const cutoffDateStr = formatDate(todayAnchor);
 
-      if (completionsError) throw completionsError;
+      const allCompletions: CompletedDay[] = [];
+      for (let page = 0; page < COMPLETIONS_MAX_PAGES; page++) {
+        const from = page * COMPLETIONS_PAGE_SIZE;
+        const to = from + COMPLETIONS_PAGE_SIZE - 1;
 
-      const formattedCompletions: CompletedDay[] = completionsData.map(c => ({
-        habitId: c.habit_id,
-        date: c.date,
-      }));
+        const { data: completionsData, error: completionsError } = await supabase
+          .from('completions')
+          .select('habit_id,date')
+          .eq('user_id', user.id)
+          .gte('date', cutoffDateStr)
+          .order('date', { ascending: false })
+          .range(from, to);
 
-      setCompletedDays(formattedCompletions);
+        if (completionsError) throw completionsError;
+
+        const chunk: CompletedDay[] = (completionsData || []).map(c => ({
+          habitId: c.habit_id,
+          date: c.date,
+        }));
+
+        allCompletions.push(...chunk);
+
+        if (!completionsData || completionsData.length < COMPLETIONS_PAGE_SIZE) {
+          break;
+        }
+      }
+
+      if (allCompletions.length >= COMPLETIONS_PAGE_SIZE * COMPLETIONS_MAX_PAGES) {
+        console.warn(
+          `Completions load hit safety cap (${COMPLETIONS_PAGE_SIZE * COMPLETIONS_MAX_PAGES}). ` +
+          `Only loaded last ${INITIAL_COMPLETIONS_WINDOW_DAYS} days up to the cap.`
+        );
+      }
+
+      setCompletedDays(allCompletions);
     } catch (error) {
       console.error('Error fetching habits:', error);
     } finally {
@@ -87,7 +129,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
       const rawName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'User';
       setUserNameState(capitalizeFirstLetter(rawName));
     } else {
-      setHabits([]);
+      setAllHabits([]);
       setCompletedDays([]);
       setLoading(false);
     }
@@ -96,7 +138,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
   const addHabit = useCallback(async (name: string, color?: string, recurrence: RecurrenceType = 'daily', customDays?: CustomRecurrence) => {
     if (!user) return;
 
-    const usedColors = habits.map(h => h.color);
+    const usedColors = allHabits.map(h => h.color);
     const habitColor = color || getNextColor(usedColors);
 
     const { data, error } = await supabase
@@ -108,6 +150,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
           color: habitColor,
           frequency: recurrence,
           custom_days: recurrence === 'custom' ? customDays : null,
+          archived: false,
         },
       ])
       .select()
@@ -122,10 +165,11 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
       createdAt: data.created_at,
       recurrence: data.frequency as RecurrenceType,
       customDays: data.custom_days,
+      archived: false,
     };
 
-    setHabits(prev => [...prev, newHabit]);
-  }, [user, habits]);
+    setAllHabits(prev => [...prev, newHabit]);
+  }, [user, allHabits]);
 
   const removeHabit = useCallback(async (id: string) => {
     if (!user) return;
@@ -137,7 +181,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw error;
 
-    setHabits(prev => prev.filter(h => h.id !== id));
+    setAllHabits(prev => prev.filter(h => h.id !== id));
     setCompletedDays(prev => prev.filter(c => c.habitId !== id));
   }, [user]);
 
@@ -149,6 +193,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
     if (updates.color) dbUpdates.color = updates.color;
     if (updates.recurrence) dbUpdates.frequency = updates.recurrence;
     if (updates.customDays) dbUpdates.custom_days = updates.customDays;
+    if (updates.archived !== undefined) dbUpdates.archived = updates.archived;
 
     const { error } = await supabase
       .from('habits')
@@ -158,8 +203,16 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw error;
 
-    setHabits(prev => prev.map(h => (h.id === id ? { ...h, ...updates } : h)));
+    setAllHabits(prev => prev.map(h => (h.id === id ? { ...h, ...updates } : h)));
   }, [user]);
+
+  const archiveHabit = useCallback(async (id: string) => {
+    await updateHabit(id, { archived: true });
+  }, [updateHabit]);
+
+  const unarchiveHabit = useCallback(async (id: string) => {
+    await updateHabit(id, { archived: false });
+  }, [updateHabit]);
 
   const toggleCompletion = useCallback(async (habitId: string, date: Date = new Date()) => {
     if (!user) return;
@@ -236,14 +289,14 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
     const completions = getCompletionsForDate(date);
 
     if (filterHabitId) {
-      const habit = habits.find(h => h.id === filterHabitId);
+      const habit = allHabits.find(h => h.id === filterHabitId);
       return completions.some(c => c.habitId === filterHabitId) && habit ? [habit] : [];
     }
 
     return completions
-      .map(c => habits.find(h => h.id === c.habitId))
+      .map(c => allHabits.find(h => h.id === c.habitId))
       .filter((h): h is Habit => h !== undefined);
-  }, [habits, getCompletionsForDate]);
+  }, [allHabits, getCompletionsForDate]);
 
   const setUserName = useCallback((name: string) => {
     setUserNameState(capitalizeFirstLetter(name));
@@ -268,7 +321,7 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
     storage.clearAll();
 
     // Reset React state
-    setHabits([]);
+    setAllHabits([]);
     setCompletedDays([]);
   }, [user]);
 
@@ -276,12 +329,15 @@ export const HabitsProvider = ({ children }: { children: ReactNode }) => {
     <HabitsContext.Provider
       value={{
         habits,
+        archivedHabits,
         completedDays,
         userName,
         loading,
         addHabit,
         removeHabit,
         updateHabit,
+        archiveHabit,
+        unarchiveHabit,
         toggleCompletion,
         isCompleted,
         getCompletionsForDate,

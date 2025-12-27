@@ -41,47 +41,38 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const navItems: { view: ViewType; icon: React.FC }[] = [
-  { view: 'home', icon: HomeIcon },
-  { view: 'stats', icon: StatsIcon },
-  { view: 'calendar', icon: CalendarIcon },
-  { view: 'settings', icon: SettingsIcon },
+const navItems: { view: ViewType; icon: React.FC; label: string }[] = [
+  { view: 'home', icon: HomeIcon, label: 'Habits' },
+  { view: 'stats', icon: StatsIcon, label: 'Stats' },
+  { view: 'calendar', icon: CalendarIcon, label: 'Calendar' },
+  { view: 'settings', icon: SettingsIcon, label: 'Settings' },
 ];
 
 export const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/5">
-      <div className="max-w-[480px] mx-auto relative flex items-center justify-around px-6 pt-3 pb-6">
-        {navItems.map(({ view, icon: Icon }) => {
+      <div className="max-w-[480px] mx-auto relative flex items-center justify-around px-2 pt-2 pb-6">
+        {navItems.map(({ view, icon: Icon, label }) => {
           const isActive = currentView === view;
 
           return (
             <motion.button
               key={view}
               onClick={() => onNavigate(view)}
-              className="relative flex flex-col items-center gap-1.5 p-2"
+              className="relative flex flex-col items-center gap-1 p-2 w-16"
               whileTap={{ scale: 0.9 }}
               style={{
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
               }}
             >
               <Icon />
-
-              {/* Active indicator */}
-              <motion.div
-                className={`${view === 'stats' ? 'w-6 h-[3px]' : 'w-1 h-1'} rounded-full`}
-                style={{ backgroundColor: isActive ? 'var(--text-primary)' : 'transparent' }}
-                initial={false}
-                animate={{
-                  scale: isActive ? 1 : 0,
-                  opacity: isActive ? 1 : 0,
-                }}
-              />
+              <span className="text-[10px] font-medium tracking-wide">
+                {label}
+              </span>
             </motion.button>
           );
         })}
-
-        </div>
-      </nav>
-    );
-  };
+      </div>
+    </nav>
+  );
+};
